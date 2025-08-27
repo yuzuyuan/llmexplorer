@@ -35,13 +35,15 @@ const members = [
     name: '喻祖源',
     bio: '软件工程师，Python开发者，动漫和游戏爱好者，专注于软件工程和大型语言模型应用开发。',
     image: 'yuzuyuan.jpg',
-    route: '/member/yuzuyuan'
+    // 修复：添加了连字符
+    route: '/member/yu-zuyuan'
   },
   {
     name: '宋春成',
     bio: '后端开发工程师，Java和Python专家，系统架构师，专注于构建高性能、高可用的后端服务。',
     image: 'Sok_Chhunheang.jpg',
-    route: '/member/sok_chhhunheangpage'
+    // 修复：路径修改为与路由配置一致
+    route: '/member/song-chuncheng'
   },
   {
     name: '李剑',
