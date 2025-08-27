@@ -25,6 +25,25 @@
       </div>
     </div>
   </div>
+
+  <!-- 新增小组介绍区域 -->
+  <div class="container" style="margin-top: 4rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <h2 style="font-weight: 600; color: #333;">认识我们的团队</h2>
+      <p style="color: #666; margin-top: 0.5rem;">了解背后的专业团队和开发者</p>
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <router-link 
+        to="/team" 
+        style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: 500; transition: transform 0.2s ease;"
+        onmouseover="this.style.transform='translateY(-2px)'" 
+        onmouseout="this.style.transform='translateY(0)'"
+      >
+        👥 认识我们的小组
+      </router-link>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -41,21 +60,23 @@ const modules = [
     desc: '掌握如何设计有效的 Prompt 来引导模型输出，提升AI应用效果。',
     link: '/kb/2-prompt-engineering',
     image:
-      'https://images.unsplash.com/photo-1676823104070-48f1c5f4b03e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      '    https://images.unsplash.com/photo-1676823104070-48f1c5f4b03e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
   },
   {
     title: 'RAG 技术',
     desc: '学习如何结合外部知识库增强模型能力，实现更精准的AI问答。',
     link: '/kb/3-rag',
     image:
-      'https://images.unsplash.com/photo-1677442135133-33d364e7d1d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      '    https://images.unsplash.com/photo-1677442135133-33d364e7d1d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
   },
   {
     title: '有监督微调',
     desc: '了解如何通过微调提升模型在特定任务上的表现，定制专属AI助手。',
     link: '/kb/4-sft',
     image:
-      'https://images.unsplash.com/photo-1677442135723-5a6a55786120?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-  },
+      '    https://images.unsplash.com/photo-1677442135723-5a6a55786120?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+  }
 ]
+
+// 保持原有功能不变，只增加新功能
 </script>

@@ -16,11 +16,13 @@
 
     <div class="team-grid">
       <div class="member-card" v-for="member in members" :key="member.name">
-        <img :src="member.avatar" :alt="member.name" class="member-avatar" />
+        <div class="member-avatar-container">
+          <img :src="`/src/images/members/${member.image}`" :alt="member.name" class="member-avatar" />
+        </div>
         <div class="member-info">
           <h3 class="member-name">{{ member.name }}</h3>
           <p class="member-bio">{{ member.bio }}</p>
-          <a href="#" class="member-link">查看详情</a>
+          <router-link :to="member.route" class="member-link">查看详情</router-link>
         </div>
       </div>
     </div>
@@ -30,28 +32,107 @@
 <script setup>
 const members = [
   {
-    name: '张明',
-    bio: 'AI研究员，擅长大模型架构设计与优化，拥有丰富的科研经验。',
-    avatar:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
+    name: '喻祖源',
+    bio: '软件工程师，Python开发者，动漫和游戏爱好者，专注于软件工程和大型语言模型应用开发。',
+    image: 'yuzuyuan.jpg',
+    route: '/member/yuzuyuan'
   },
   {
-    name: '李华',
-    bio: '前端开发工程师，专注于用户体验设计，致力于打造简洁美观的界面。',
-    avatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
+    name: '宋春成',
+    bio: '后端开发工程师，Java和Python专家，系统架构师，专注于构建高性能、高可用的后端服务。',
+    image: 'Sok_Chhunheang.jpg',
+    route: '/member/sok_chhhunheangpage'
   },
   {
-    name: '王强',
-    bio: '内容策划专家，负责科普内容的创作与编辑，确保内容的准确性和趣味性。',
-    avatar:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
+    name: '李剑',
+    bio: '前端开发工程师，Vue.js和React专家，UI/UX爱好者，专注于用户体验设计。',
+    image: '李剑.jpg',
+    route: '/member/li-jian'
   },
   {
-    name: '陈丽',
-    bio: '产品经理，统筹项目规划与执行，确保平台功能满足用户需求。',
-    avatar:
-      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
+    name: '瓦里斯',
+    bio: '算法工程师，机器学习和深度学习专家，专注于自然语言处理和计算机视觉技术研究。',
+    image: '瓦里斯.jpg',
+    route: '/member/walis'
   },
+  {
+    name: '赵子彦',
+    bio: '产品经理，用户体验设计师，专注于界面设计和交互体验优化，追求简洁美观的设计风格。',
+    image: '赵子彦.jpg',
+    route: '/member/zhao-ziyan'
+  },
+  {
+    name: '吴威廉',
+    bio: 'UI/UX设计师，产品设计专家，擅长用户需求分析和产品规划，具有丰富的项目管理经验。',
+    image: '吴威廉.jpg',
+    route: '/member/wu-weilian'
+  }
 ]
 </script>
+
+<style scoped>
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.member-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.member-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.member-avatar-container {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.member-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.member-info {
+  padding: 1.5rem;
+}
+
+.member-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 0.5rem 0;
+}
+
+.member-bio {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.member-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.member-link:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+</style>
