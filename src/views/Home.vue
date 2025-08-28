@@ -47,34 +47,38 @@
 </template>
 
 <script setup>
+import llmBasicsImage from '@/assets/images/tokenizer.png';
+import promptEngineeringImage from '@/assets/images/prompt.png';
+import ragImage from '@/assets/images/rag.png';
+import sftImage from '@/assets/images/sft.png';
 const modules = [
   {
     title: '大模型基础',
     desc: '了解大模型的架构、训练方式与基本原理，从零开始掌握AI核心技术。',
     link: '/kb/1-llm-basics',
     image:
-      'https://images.unsplash.com/photo-1677442135722-5f11e06a4e6d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      llmBasicsImage,
   },
   {
     title: 'Prompt 工程',
     desc: '掌握如何设计有效的 Prompt 来引导模型输出，提升AI应用效果。',
     link: '/kb/2-prompt-engineering',
     image:
-      '    https://images.unsplash.com/photo-1676823104070-48f1c5f4b03e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      promptEngineeringImage,
   },
   {
     title: 'RAG 技术',
     desc: '学习如何结合外部知识库增强模型能力，实现更精准的AI问答。',
     link: '/kb/3-rag',
     image:
-      '    https://images.unsplash.com/photo-1677442135133-33d364e7d1d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      ragImage,
   },
   {
     title: '有监督微调',
     desc: '了解如何通过微调提升模型在特定任务上的表现，定制专属AI助手。',
     link: '/kb/4-sft',
     image:
-      '    https://images.unsplash.com/photo-1677442135723-5a6a55786120?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      sftImage,
   }
 ]
 
