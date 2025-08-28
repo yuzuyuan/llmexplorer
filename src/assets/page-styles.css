@@ -101,3 +101,14 @@
   background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 102, 204, 0.5), rgba(0, 0, 0, 0));
   margin: 4rem 0;
 }
+/* 新增的搜索高亮样式 */
+.markdown-body .search-highlight {
+  background-color: #ffda79; /* 醒目的黄色高亮 */
+  padding: 2px 0;
+  border-radius: 3px;
+}
+
+.markdown-body .search-highlight-active {
+  background-color: #ff9f43; /* 当前激活项使用更深的颜色 */
+  color: #fff;
+}

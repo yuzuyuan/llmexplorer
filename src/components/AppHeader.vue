@@ -11,11 +11,11 @@
         </div>
 
         <div class="search-container">
-          <i class="bi bi-search search-icon"></i>
+          <i class="bi bi-search search-icon" @click="handleSearch"></i>
           <input
             type="text"
             class="search-input"
-            placeholder="搜索..."
+            placeholder="搜索文章内容..."
             v-model="searchQuery"
             @keyup.enter="handleSearch"
           />
@@ -85,9 +85,13 @@ const handleLogout = () => {
 }
 
 const handleSearch = () => {
-  if (searchQuery.value.trim()) {
-    // 这里可以实现搜索功能
-    console.log('搜索:', searchQuery.value)
+  const query = searchQuery.value.trim();
+  if (query) {
+    // 跳转到文章页，并带上搜索参数
+    router.push({ path: '/articles', query: { search: query } });
+    // 清空输入框（可选）
+    searchQuery.value = '';
+    isMenuOpen.value = false; // 如果在手机端，关闭菜单
   }
 }
 
