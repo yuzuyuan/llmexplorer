@@ -70,7 +70,7 @@
 
     <!-- Navigation -->
     <div class="navigation-container">
-      <router-link to="/group" class="nav-button">
+      <router-link to="/team" class="nav-button">
         ← 返回小组页面
       </router-link>
     </div>
