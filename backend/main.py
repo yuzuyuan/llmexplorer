@@ -3,6 +3,7 @@ import json
 import os
 import glob
 import re # 导入正则表达式库
+import pandas as pd # 导入 pandas 库
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -49,52 +50,45 @@ def get_golden_predictions():
 
 @app.get("/api/sft/training_logs")
 def get_training_logs():
-    # 【核心修正】读取 output.log 文件并从中解析数据
+    """从 wandb_history_data.csv 读取日志用于可视化"""
     try:
+        # 【核心修改】直接定位到指定的CSV文件
         script_dir = os.path.dirname(__file__)
-        wandb_base_dir = os.path.join(script_dir, "sft", "cat_sft", "wandb")
-        
-        run_dirs = [d for d in os.listdir(wandb_base_dir) if d.startswith("run-") and os.path.isdir(os.path.join(wandb_base_dir, d))]
-        if not run_dirs:
-            raise FileNotFoundError("在wandb目录下未找到任何 run-* 文件夹")
-            
-        latest_run_dir = max(run_dirs, key=lambda d: os.path.getmtime(os.path.join(wandb_base_dir, d)))
-        
-        # 将目标文件指向 output.log
-        log_file_path = os.path.join(wandb_base_dir, latest_run_dir, "files", "output.log")
-        
-        if not os.path.exists(log_file_path):
-             raise FileNotFoundError(f"在最新的运行目录 {latest_run_dir} 中未找到 output.log 文件")
+        csv_path = os.path.join(script_dir, "sft", "cat_sft", "wandb", "run-20250828_175844-bicdaw19", "files", "wandb_history_data.csv")
 
-        print(f"--- 成功定位到日志文件: {log_file_path}")
-        
-        logs = []
-        with open(log_file_path, "r", encoding="utf-8") as f:
-            for line in f:
-                # 查找包含 loss 和 learning_rate 的日志行
-                if "'loss':" in line and "'learning_rate':" in line:
-                    try:
-                        # 找到行中字典字符串的开始和结束位置
-                        start_index = line.find('{')
-                        end_index = line.rfind('}') + 1
-                        dict_str = line[start_index:end_index]
-                        
-                        # 使用 ast.literal_eval 安全地将字符串转换为字典
-                        log_entry = ast.literal_eval(dict_str)
-                        
-                        if "loss" in log_entry and "step" in log_entry:
-                            logs.append({
-                                "step": log_entry.get("step"),
-                                "loss": log_entry.get("loss"),
-                                "learning_rate": log_entry.get("learning_rate"),
-                            })
-                    except (ValueError, SyntaxError):
-                        # 如果某一行解析失败，就跳过
-                        continue
+        if not os.path.exists(csv_path):
+            raise HTTPException(status_code=404, detail=f"CSV日志文件未找到: {csv_path}")
+
+        print(f"--- 成功定位到日志文件: {csv_path}")
+
+        # 使用 pandas 读取 CSV
+        df = pd.read_csv(csv_path)
+
+        # 筛选和重命名列以匹配前端期望的格式
+        # 前端需要 'step', 'loss', 'learning_rate'
+        # CSV 中对应的列是 'train/global_step', 'train/loss', 'train/learning_rate'
+        logs_df = df[['train/global_step', 'train/loss', 'train/learning_rate']].copy()
+        logs_df.rename(columns={
+            'train/global_step': 'step',
+            'train/loss': 'loss',
+            'train/learning_rate': 'learning_rate'
+        }, inplace=True)
+
+        # 去除包含 NaN 值的行，确保数据干净
+        logs_df.dropna(inplace=True)
+
+        # 将 step 列转换为整数类型，确保 Echarts 能正确处理
+        logs_df['step'] = logs_df['step'].astype(int)
+
+        # 将DataFrame转换为前端期望的字典列表格式
+        logs = logs_df.to_dict(orient='records')
+
         return logs
+
     except Exception as e:
-        print(f"--- 读取wandb日志时发生错误: {e}")
+        print(f"--- 读取wandb CSV日志时发生错误: {e}")
         raise HTTPException(status_code=500, detail=f"读取训练日志失败: {str(e)}")
+
 @app.post("/api/chat")
 def chat_with_model(request: ChatRequest):
     tokenizer = model_server.get_tokenizer()

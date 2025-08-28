@@ -24,7 +24,7 @@
             <ul class="list-group">
               <li class="list-group-item d-flex justify-content-between align-items-center">
                 训练步数 (Step)
-                <span class="badge bg-primary rounded-pill fs-6">{{ currentStep }} / 250</span>
+                <span class="badge bg-primary rounded-pill fs-6">{{ currentStep }}</span>
               </li>
               <li class="list-group-item d-flex justify-content-between align-items-center">
                 训练损失 (Loss)
@@ -75,12 +75,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, defineAsyncComponent, watch } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import * as echarts from 'echarts';
+import ChatInterface from '@/components/ChatInterface.vue';
 
 // --- 组件和状态定义 ---
-const ChatInterface = defineAsyncComponent(() => import('../../components/ChatInterface.vue'));
-
 const trainingLogs = ref([]);
 const goldenPredictions = ref({});
 const chartContainer = ref(null);
@@ -94,7 +93,7 @@ const currentLoss = ref(0);
 const currentLR = ref(0);
 
 // 对话状态
-const checkpoints = ref(['base', 'checkpoint-50', 'checkpoint-100', 'checkpoint-150', 'checkpoint-200', 'checkpoint-250']);
+const checkpoints = ref(['base', 'checkpoint-50', 'checkpoint-100', 'checkpoint-150', 'checkpoint-200', 'checkpoint-final']);
 const selectedCheckpointIndex = ref(0);
 const chatMessages = ref([]);
 const isChatting = ref(false);
@@ -104,7 +103,8 @@ const selectedModelId = computed(() => checkpoints.value[selectedCheckpointIndex
 const selectedModelName = computed(() => {
     const id = selectedModelId.value;
     if (id === 'base') return '基础模型';
-    return `微调模型 (${id.split('-')[1]} 步)`;
+    const step = id.split('-')[1] === 'final' ? '250' : id.split('-')[1];
+    return `微调模型 (${step} 步)`;
 });
 
 
@@ -115,10 +115,10 @@ onMounted(async () => {
       fetch('http://127.0.0.1:8000/api/sft/training_logs'),
       fetch('http://127.0.0.1:8000/api/sft/golden_predictions'),
     ]);
+    if(!logsRes.ok || !predsRes.ok) throw new Error("API response was not ok.");
     trainingLogs.value = await logsRes.json();
     goldenPredictions.value = await predsRes.json();
-    
-    // 初始化图表
+
     initChart();
   } catch (error) {
     console.error("加载SFT数据失败:", error);
@@ -147,7 +147,8 @@ const startSimulation = () => {
   simulationDone.value = false;
   
   let logIndex = 0;
-  chartInstance.setOption({ series: [{ data: [] }] }); // 清空图表
+  const displayedData = [];
+  chartInstance.setOption({ series: [{ data: [] }] });
 
   const interval = setInterval(() => {
     if (logIndex >= trainingLogs.value.length) {
@@ -161,13 +162,16 @@ const startSimulation = () => {
     currentLoss.value = log.loss;
     currentLR.value = log.learning_rate;
     
-    chartInstance.appendData({
-        seriesIndex: 0,
-        data: [[log.step, log.loss]]
+    displayedData.push([log.step, log.loss]);
+
+    chartInstance.setOption({
+        series: [{
+            data: displayedData
+        }]
     });
     
     logIndex++;
-  }, 50); // 每50ms播放一帧
+  }, 50);
 };
 
 // --- 对话逻辑 ---
@@ -175,19 +179,16 @@ const handleChatSend = async (message) => {
   chatMessages.value.push({ from: 'user', text: message });
   isChatting.value = true;
   
-  // 不再发送历史记录，只发送当前用户输入
-  // const currentHistory = chatMessages.value.map(msg => ({ role: msg.from === 'user' ? 'user' : 'assistant', content: msg.text }));
-  
   try {
     const response = await fetch('http://127.0.0.1:8000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            prompt: message, // 只发送 prompt 字段
+            prompt: message,
             model_id: selectedModelId.value
         })
     });
-    if (!response.ok) { // 捕获 422 等错误
+    if (!response.ok) {
         throw new Error(`API 请求失败，状态码: ${response.status}`);
     }
     const data = await response.json();
@@ -200,10 +201,10 @@ const handleChatSend = async (message) => {
   }
 };
 
+// --- Watcher ---
 watch(selectedModelId, (newId, oldId) => {
-    // 增加一个判断，避免组件初始化时触发不必要的重置
     if (newId !== oldId) {
         chatMessages.value = [{from: 'bot', text: `你好！我是${selectedModelName.value}，有什么可以帮你的吗？`}];
     }
-}, { immediate: true }); // immediate: true 保证首次加载时设置欢迎语
+}, { immediate: true });
 </script>
