@@ -16,11 +16,13 @@ const LlmBasicsPage = () => import('../views/pages/LlmBasicsPage.vue');
 const PromptEngineeringPage = () => import('../views/pages/PromptEngineeringPage.vue');
 const RagPage = () => import('../views/pages/RagPage.vue');
 const SftPage = () => import('../views/pages/SftPage.vue');
+const ArticlesPage = () => import('../views/pages/ArticlesPage.vue');
 const routes = [
   { path: '/', component: Home },
   { path: '/team', component: Team },
   { path: '/login', component: Login },
   { path: '/register', component: Register },
+  { path: '/articles', component: ArticlesPage },
     // 更新知识库路由指向新的独立页面
   { path: '/kb/1-llm-basics', component: LlmBasicsPage },
   { path: '/kb/2-prompt-engineering', component: PromptEngineeringPage },

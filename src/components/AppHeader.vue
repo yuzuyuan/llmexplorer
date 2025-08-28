@@ -6,7 +6,7 @@
       <div class="nav-menu" :class="{ active: isMenuOpen }">
         <div class="nav-links">
           <router-link to="/" class="nav-link">首页</router-link>
-          <router-link to="/kb/1-llm-basics" class="nav-link">文章</router-link>
+          <router-link to="/articles" class="nav-link">文章</router-link>
           <router-link to="/team" class="nav-link">关于我们</router-link>
         </div>
 
