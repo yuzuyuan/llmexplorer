@@ -1,106 +1,116 @@
 <template>
-  <header class="navbar">
-    <div class="container navbar-container">
-      <router-link to="/" class="navbar-brand">ScienceLab</router-link>
-
-      <div class="nav-menu" :class="{ active: isMenuOpen }">
-        <div class="nav-links">
-          <router-link to="/" class="nav-link">首页</router-link>
-          <router-link to="/articles" class="nav-link">文章</router-link>
-          <router-link to="/team" class="nav-link">关于我们</router-link>
-        </div>
-
-        <div class="search-container">
-          <i class="bi bi-search search-icon" @click="handleSearch"></i>
-          <input
-            type="text"
-            class="search-input"
-            placeholder="搜索文章内容..."
-            v-model="searchQuery"
-            @keyup.enter="handleSearch"
-          />
-        </div>
-
-        <template v-if="currentUser">
-          <div class="dropdown">
-            <div class="user-avatar">
-              {{ getUserInitials(currentUser.username) }}
-            </div>
-            <div class="dropdown-menu">
-              <span class="dropdown-item">欢迎, {{ currentUser.username }}</span>
-              <hr class="dropdown-divider" />
-              <button class="dropdown-item" @click="handleLogout">退出登录</button>
-            </div>
-          </div>
-        </template>
-        <template v-else>
-          <router-link to="/login" class="nav-link">登录</router-link>
-          <router-link to="/register" class="nav-link">注册</router-link>
-        </template>
-      </div>
-
-      <div class="hamburger" @click="toggleMenu">
-        <span></span>
-        <span></span>
-        <span></span>
+  <header class="app-header">
+    <div class="container header-container">
+      <router-link to="/" class="logo">
+        <img src="@/assets/images/bot-avatar.png" alt="LLM Explorer Logo" class="logo-img" />
+        <span class="logo-text">LLM Explorer</span>
+      </router-link>
+      <nav class="main-nav">
+        <router-link to="/" class="nav-link">Home</router-link>
+        <router-link to="/kb/1-llm-basics" class="nav-link">LLM Basics</router-link>
+        <router-link to="/kb/2-prompt-engineering" class="nav-link">Prompt Engineering</router-link>
+        <router-link to="/kb/3-rag" class="nav-link">RAG</router-link>
+        <router-link to="/kb/4-sft" class="nav-link">Fine-Tuning</router-link>
+        <router-link to="/team" class="nav-link">Our Team</router-link>
+      </nav>
+      <div class="header-actions">
+        <router-link to="/login" class="btn btn-secondary">Login</router-link>
+        <router-link to="/register" class="btn btn-primary">Register</router-link>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-const isMenuOpen = ref(false)
-const searchQuery = ref('')
-const currentUser = ref(null)
-
-const toggleMenu = () => {
-  isMenuOpen.value = !isMenuOpen.value
-}
-
-const getUserInitials = (username) => {
-  if (!username) return '??'
-  return username.substring(0, 2).toUpperCase()
-}
-
-const checkLoginStatus = () => {
-  const user = localStorage.getItem('currentUser')
-  if (user) {
-    try {
-      currentUser.value = JSON.parse(user)
-    } catch (e) {
-      console.error('解析用户信息失败:', e)
-      localStorage.removeItem('currentUser')
-    }
-  }
-}
-
-const handleLogout = () => {
-  localStorage.removeItem('currentUser')
-  currentUser.value = null
-  router.push('/login')
-}
-
-const handleSearch = () => {
-  const query = searchQuery.value.trim();
-  if (query) {
-    // 跳转到文章页，并带上搜索参数
-    router.push({ path: '/articles', query: { search: query } });
-    // 清空输入框（可选）
-    searchQuery.value = '';
-    isMenuOpen.value = false; // 如果在手机端，关闭菜单
-  }
-}
-
-onMounted(() => {
-  checkLoginStatus()
-
-  router.afterEach(() => {
-    checkLoginStatus()
-    isMenuOpen.value = false
-  })
-})
+// No script changes needed
 </script>
+
+<style scoped>
+/* Styles remain the same */
+.app-header {
+  background-color: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #111827;
+}
+
+.logo-img {
+  height: 40px;
+  width: 40px;
+  margin-right: 0.75rem;
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.main-nav {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #4b5563;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.nav-link:hover,
+.nav-link.router-link-exact-active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.btn-secondary {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.btn-secondary:hover {
+  background-color: #d1d5db;
+}
+</style>

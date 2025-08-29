@@ -1,16 +1,16 @@
 <template>
   <section class="hero-section">
     <div class="hero-content">
-      <h1 class="hero-title">探索科学的无限可能</h1>
-      <p class="hero-subtitle">通过简洁易懂的内容，深入了解前沿科技与科学原理</p>
+      <h1 class="hero-title">Explore the Infinite Possibilities of Science</h1>
+      <p class="hero-subtitle">Dive deep into cutting-edge technology and scientific principles through clear and concise content.</p>
       <router-link to="/kb/1-llm-basics" class="btn">
-        <i class="bi bi-compass"></i> 探索文章
+        <i class="bi bi-compass"></i> Explore Articles
       </router-link>
     </div>
   </section>
 
   <div class="container">
-    <h2 style="text-align: center; margin-bottom: 2rem; font-weight: 600">热门科普内容</h2>
+    <h2 style="text-align: center; margin-bottom: 2rem; font-weight: 600">Popular Science Content</h2>
 
     <div class="articles-grid">
       <div class="card" v-for="item in modules" :key="item.title">
@@ -19,18 +19,17 @@
           <h3 class="card-title">{{ item.title }}</h3>
           <p class="card-excerpt">{{ item.desc }}</p>
           <router-link :to="item.link" class="card-link">
-            阅读更多 <i class="bi bi-arrow-right"></i>
+            Read More <i class="bi bi-arrow-right"></i>
           </router-link>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 新增小组介绍区域 -->
   <div class="container" style="margin-top: 4rem;">
     <div style="text-align: center; margin-bottom: 2rem;">
-      <h2 style="font-weight: 600; color: #333;">认识我们的团队</h2>
-      <p style="color: #666; margin-top: 0.5rem;">了解背后的专业团队和开发者</p>
+      <h2 style="font-weight: 600; color: #333;">Meet Our Team</h2>
+      <p style="color: #666; margin-top: 0.5rem;">Get to know the professional team and developers behind the project.</p>
     </div>
     
     <div style="text-align: center; margin-bottom: 2rem;">
@@ -40,7 +39,7 @@
         onmouseover="this.style.transform='translateY(-2px)'" 
         onmouseout="this.style.transform='translateY(0)'"
       >
-        👥 认识我们的小组
+        👥 Meet Our Team
       </router-link>
     </div>
   </div>
@@ -53,34 +52,161 @@ import ragImage from '@/assets/images/rag.png';
 import sftImage from '@/assets/images/sft.png';
 const modules = [
   {
-    title: '大模型基础',
-    desc: '了解大模型的架构、训练方式与基本原理，从零开始掌握AI核心技术。',
+    title: 'LLM Basics',
+    desc: 'Understand the architecture, training methods, and fundamental principles of large models to master core AI technologies from scratch.',
     link: '/kb/1-llm-basics',
     image:
       llmBasicsImage,
   },
   {
-    title: 'Prompt 工程',
-    desc: '掌握如何设计有效的 Prompt 来引导模型输出，提升AI应用效果。',
+    title: 'Prompt Engineering',
+    desc: 'Learn how to design effective prompts to guide model outputs and enhance the performance of your AI applications.',
     link: '/kb/2-prompt-engineering',
     image:
       promptEngineeringImage,
   },
   {
-    title: 'RAG 技术',
-    desc: '学习如何结合外部知识库增强模型能力，实现更精准的AI问答。',
+    title: 'RAG Technology',
+    desc: 'Discover how to augment model capabilities with external knowledge bases to achieve more accurate and context-aware AI Q&A.',
     link: '/kb/3-rag',
     image:
       ragImage,
   },
   {
-    title: '有监督微调',
-    desc: '了解如何通过微调提升模型在特定任务上的表现，定制专属AI助手。',
+    title: 'Supervised Fine-Tuning',
+    desc: 'Learn how to improve model performance on specific tasks through fine-tuning, allowing you to create customized AI assistants.',
     link: '/kb/4-sft',
     image:
       sftImage,
   }
 ]
-
-// 保持原有功能不变，只增加新功能
 </script>
+
+<style scoped>
+.hero-section {
+  position: relative;
+  height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('../assets/images/hero-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.6);
+  z-index: -1;
+}
+
+.hero-content {
+  max-width: 800px;
+  padding: 0 1rem;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #3b82f6;
+  color: white;
+  padding: 0.8rem 1.8rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  font-weight: 500;
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.btn:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 1rem;
+}
+
+.articles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.card-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.card-content {
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 0.5rem 0;
+}
+
+.card-excerpt {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.card-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.card-link:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+</style>

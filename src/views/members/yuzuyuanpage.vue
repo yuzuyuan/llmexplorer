@@ -1,18 +1,26 @@
 <template>
   <div class="member-profile-page">
-    <!-- Profile Section -->
     <div class="profile-container">
       <div class="profile-pic-wrapper">
         <img src="@/images/members/yuzuyuan.jpg" alt="Yu Zuyuan" class="profile-pic" />
       </div>
       <h1 class="headline">Hi, I'm Yu Zuyuan! 💻</h1>
       <p class="bio">
-        🎓 Software Engineering undergraduate / 🐍 "One-year Python practitioner" / 🎮 Anime &
-        gaming dual-wielder
+        🎓 Software Engineering Undergraduate / 🐍 "One-year Python practitioner" / 🎮 Anime &
+        Gaming Dual-wielder
       </p>
     </div>
 
-    <!-- Skills Section -->
+    <div class="about-me-container">
+      <h2>📝 About Me</h2>
+      <p>
+        Hello! I'm Yu Zuyuan, a passionate software engineering student. Ever since I typed my first 'Hello, World!', I've been fascinated by the power of code to change the world. I love working with Python for its simplicity and power, allowing me to quickly turn ideas into reality. Whether it's developing practical web applications or exploring the secrets hidden in data, the world of technology always brings me endless surprises.
+        <br /><br />
+        Beyond my studies, anime and gaming are significant sources of my inspiration. They are not just my hobbies but also teach me how to build captivating worlds and tell moving stories. These insights often inspire my programming and design. I firmly believe that technology is an extension of creativity, and I hope to combine my skills with my passions to create products that bring joy and emotion to people.
+      </p>
+    </div>
+
+
     <div class="skills-container">
       <div class="skill">
         <div class="skill-label">Python</div>
@@ -40,7 +48,6 @@
       </div>
     </div>
 
-    <!-- Gallery -->
     <div class="gallery-container">
       <div class="gallery-item">
         <img
@@ -68,17 +75,14 @@
       </div>
     </div>
 
-    <!-- Navigation -->
     <div class="navigation-container">
-      <router-link to="/team" class="nav-button">
-        ← 返回小组页面
-      </router-link>
+      <router-link to="/team" class="nav-button"> ← Back to Team Page </router-link>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// 组件逻辑
+// Component logic
 </script>
 
 <style scoped>
@@ -96,8 +100,7 @@
   background-color: #f9f7f4;
   color: #555;
   line-height: 1.6;
-  background-image:
-    linear-gradient(
+  background-image: linear-gradient(
       0deg,
       transparent 24%,
       rgba(255, 255, 255, 0.8) 25%,
@@ -153,15 +156,6 @@ p {
 }
 
 /* ========================
- SKETCHY BORDER UTILITY
- ======================== */
-.sketch-border {
-  border: 3px solid transparent;
-  border-image: url('https://www.svgrepo.com/show/356584/sketch-border.svg') 30 stretch;
-  border-image-slice: 30;
-}
-
-/* ========================
  PROFILE SECTION
  ======================== */
 .profile-container {
@@ -196,18 +190,6 @@ p {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
 }
 
-.profile-pic-wrapper::before {
-  content: '';
-  position: absolute;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  border: 4px solid transparent;
-  border-image: url('https://www.svgrepo.com/show/356584/sketch-border.svg') 30 round;
-  border-image-slice: 30;
-  z-index: -1;
-}
-
 .headline {
   font-size: 2.5rem;
   margin: 20px 0 10px;
@@ -220,6 +202,37 @@ p {
   margin: 0 auto 30px;
   font-size: 1.2rem;
   color: #666;
+}
+
+/* ========================
+ ABOUT ME SECTION
+ ======================== */
+.about-me-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px 40px;
+  background: #fffaf0; /* Creamy white, like paper */
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
+  border: 2px dashed #ffc0cb; /* Pink dashed border */
+  text-align: left;
+  position: relative;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideIn 0.6s 0.1s forwards; /* Delayed appearance */
+}
+
+.about-me-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #ff6b6b; /* Match skill label color */
+  font-size: 2rem;
+}
+
+.about-me-container p {
+  font-size: 1.25rem; /* Slightly larger for readability */
+  color: #5c5c5c;
+  line-height: 1.8;
 }
 
 /* ========================
@@ -339,7 +352,6 @@ p {
   display: block;
 }
 
-/* Pen-trace hover effect */
 .gallery-item::before {
   content: '';
   position: absolute;
@@ -349,9 +361,7 @@ p {
   height: 0;
   border: 2px solid #e75480;
   opacity: 0;
-  transition:
-    width 0.4s ease,
-    height 0.4s ease;
+  transition: width 0.4s ease, height 0.4s ease;
 }
 
 .gallery-item:hover::before {
@@ -401,6 +411,10 @@ p {
   .bio {
     font-size: 1.1rem;
     padding: 0 10px;
+  }
+
+  .about-me-container {
+    padding: 20px;
   }
 
   .skills-container {

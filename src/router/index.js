@@ -9,8 +9,8 @@ import Register from '../views/Register.vue'
 const YuZuyuanPage = () => import('../views/members/yuzuyuanpage.vue')
 const SongChunchengPage = () => import('../views/members/sok_chhhunheangpage.vue')
 const LiJianPage = () => import('../views/members/LiJianPage.vue')
-const WalisPage = () => import('../views/members/WalisPage.vue')
-const ZhaoZiyanPage = () => import('../views/members/ZhaoZiyanPage.vue')
+const WalisPage = () => import('../views/members/WarisPage.vue')
+const KyawKyawTunPage = () => import('../views/members/KyawKyawTunPage.vue') // <--- 更新
 const WuWeilianPage = () => import('../views/members/WuWeilianPage.vue')
 const LlmBasicsPage = () => import('../views/pages/LlmBasicsPage.vue');
 const PromptEngineeringPage = () => import('../views/pages/PromptEngineeringPage.vue');
@@ -33,7 +33,7 @@ const routes = [
   { path: '/member/song-chuncheng', component: SongChunchengPage },
   { path: '/member/li-jian', component: LiJianPage },
   { path: '/member/walis', component: WalisPage },
-  { path: '/member/zhao-ziyan', component: ZhaoZiyanPage },
+  { path: '/member/kyaw-kyaw-tun', component: KyawKyawTunPage }, // <--- 更新
   { path: '/member/wu-weilian', component: WuWeilianPage }
 ]
 
