@@ -617,3 +617,9 @@ footer {
 .member-link:hover {
   color: #0052a3;
 }
+.highlight-guide {
+  border: 2px solid #0d6efd !important; /* Use !important to override other styles */
+  border-radius: 5px;
+  box-shadow: 0 0 15px rgba(13, 110, 253, 0.5);
+  transition: all 0.3s ease-in-out;
+}

@@ -1,63 +1,65 @@
 import torch
 import json
 import os
-import re
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import List
+from pydantic import BaseModel
+from typing import List, Dict, Any
 
-# --- 核心修改：直接导入 model_server 的单例 ---
-from model_server import model_server_instance
+# --- 核心修改：导入新的、分离的服务实例和函数 ---
+from model_server import llm_basics_server, sft_model_provider
 
-# --- FastAPI 应用和CORS配置 (保持不变) ---
-app = FastAPI()
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+# --- FastAPI 应用和CORS配置 ---
+app = FastAPI(
+  title="LLM Explorer Backend",
+  description="API server for the LLM Explorer application, providing model inference and other services.",
+  version="1.0.0"
+)
+
+# 为了方便开发，允许所有来源
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- Pydantic 模型定义 ---
+# --- 数据模型定义 (Request/Response Models) ---
 
-# 用于 /api/tokenize 的模型
 class TokenizeRequest(BaseModel):
     text: str
 
-# 用于 /api/predict_next 的模型
-class PredictRequest(BaseModel):
-    text: str
-    top_k: int = 5
-
-# 用于 /api/chat 的模型
-class ChatRequest(BaseModel):
-    prompt: str
-    model_id: str = Field(..., description="模型ID, e.g., 'base', 'checkpoint-50'")
-
-# --- 新增：用于 /api/get_embeddings 的模型 ---
-class EmbeddingRequest(BaseModel):
+class EmbeddingsRequest(BaseModel):
     words: List[str]
 
-# --- 新增：用于 /api/get_attention 的模型 ---
 class AttentionRequest(BaseModel):
     text: str
-    layer: int = 0
-    head: int = 0
+    layer: int
+    head: int
 
+class PredictRequest(BaseModel):
+    text: str
+
+class SftRequest(BaseModel):
+    model_id: str
+    prompt: str
+    max_new_tokens: int = 128
+    temperature: float = 0.7
+    top_p: float = 0.9
 
 # --- API 路由定义 ---
 
 @app.get("/")
 def read_root():
-    return {"message": "后端服务连接成功! Hello from FastAPI!"}
+    return {"message": "LLM Explorer Backend is running"}
 
-# --- SFT 页面相关API (保持不变) ---
+# --- SFT 页面相关API (从原始 main.py 中恢复) ---
+
 @app.get("/api/sft/golden_predictions")
 def get_golden_predictions():
+    """从文件加载并返回 SFT 的黄金标准预测。"""
     file_path = os.path.join(os.path.dirname(__file__), "sft", "cat_sft", "golden_predictions_vanilla.json")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="golden_predictions_vanilla.json 文件未找到")
@@ -66,12 +68,14 @@ def get_golden_predictions():
 
 @app.get("/api/sft/training_logs")
 def get_training_logs():
+    """从文件加载并返回 SFT 的训练日志。"""
     try:
         script_dir = os.path.dirname(__file__)
         csv_path = os.path.join(script_dir, "sft", "cat_sft", "wandb", "run-20250828_175844-bicdaw19", "files", "wandb_history_data.csv")
         if not os.path.exists(csv_path):
             raise HTTPException(status_code=404, detail=f"CSV日志文件未找到: {csv_path}")
         df = pd.read_csv(csv_path)
+        # 选择并重命名需要的列
         logs_df = df[['train/global_step', 'train/loss', 'train/learning_rate']].copy()
         logs_df.rename(columns={
             'train/global_step': 'step',
@@ -84,84 +88,70 @@ def get_training_logs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"读取训练日志失败: {str(e)}")
 
-# --- Chat 页面API ---
-@app.post("/api/chat")
-def chat_with_model(request: ChatRequest):
-    try:
-        # --- 核心修改：使用 model_server_instance ---
-        tokenizer = model_server_instance.tokenizer
-        model = model_server_instance.get_model_for_inference(request.model_id)
-        
-        messages = [{"role": "user", "content": request.prompt}]
-        text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = tokenizer(text, return_tensors="pt").to(model.device)
-        
-        with torch.inference_mode():
-            outputs = model.generate(**inputs, max_new_tokens=256, use_cache=True)
-        
-        response_text = tokenizer.batch_decode(outputs)[0]
-        
-        try:
-            assistant_response_raw = response_text.split("<|im_start|>assistant\n")[1].split("<|im_end|>")[0].strip()
-            assistant_response_clean = re.sub(r"<think>.*?</think>", "", assistant_response_raw, flags=re.DOTALL).strip()
-        except IndexError:
-            assistant_response_clean = "[模型未能生成有效回复]"
-            
-        return {"reply": assistant_response_clean}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 # --- LLM Basics 页面API ---
 
 @app.post("/api/tokenize")
-def tokenize_text(request: TokenizeRequest):
-    # --- 核心修改：使用 model_server_instance ---
-    tokenizer = model_server_instance.tokenizer
-    token_ids = tokenizer.encode(request.text)
-    # 修正：返回 tokens 和 ids 以便前端使用
-    tokens = [tokenizer.decode([token_id]) for token_id in token_ids]
-    return {"tokens": tokens, "token_ids": token_ids}
-
-@app.post("/api/predict_next")
-def predict_next_token(request: PredictRequest):
-    # --- 核心修改：使用 model_server_instance ---
-    tokenizer = model_server_instance.tokenizer
-    model = model_server_instance.get_model_for_inference("base") # 基础功能固定使用base model
-    
-    inputs = tokenizer(request.text, return_tensors="pt").to(model.device)
-    with torch.no_grad():
-        outputs = model(**inputs)
-    
-    next_token_logits = outputs.logits[:, -1, :]
-    probabilities = torch.softmax(next_token_logits, dim=-1)
-    top_k_probs, top_k_indices = torch.topk(probabilities, request.top_k)
-    
-    top_k_probs = top_k_probs.cpu().flatten().tolist()
-    top_k_indices = top_k_indices.cpu().flatten().tolist()
-    top_k_tokens = [tokenizer.decode([idx]) for idx in top_k_indices] # decode出来可能带空格，前端处理
-    
-    predictions = [{"token": token, "probability": round(prob * 100, 2)} for token, prob in zip(top_k_tokens, top_k_probs)]
-    return {"predictions": predictions}
-
-# --- 新增：LLM Basics 页面API ---
+async def tokenize(request: TokenizeRequest):
+    try:
+        return llm_basics_server.tokenize(request.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/get_embeddings")
-async def get_embeddings(request: EmbeddingRequest):
+async def get_embeddings(request: EmbeddingsRequest):
     try:
-        # --- 核心修改：使用 model_server_instance ---
-        result = model_server_instance.get_embeddings(request.words)
-        if "error" in result:
-             raise HTTPException(status_code=400, detail=result["error"])
-        return result
+        return llm_basics_server.get_embeddings(request.words)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/get_attention")
 async def get_attention(request: AttentionRequest):
     try:
-        # --- 核心修改：使用 model_server_instance ---
-        result = model_server_instance.get_attention(request.text, request.layer, request.head)
-        return result
+        return llm_basics_server.get_attention(request.text, request.layer, request.head)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/predict_next")
+async def predict_next(request: PredictRequest):
+    try:
+        return llm_basics_server.predict_next(request.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- SFT/Chat 页面生成 API ---
+
+@app.post("/api/sft_generate") # URL 保持统一，对应前端的 SftSimulator.vue
+async def sft_generate(request: SftRequest) -> Dict[str, Any]:
+    try:
+        # 使用新的 sft_model_provider 函数来获取模型
+        model = sft_model_provider(request.model_id)
+        tokenizer = llm_basics_server.tokenizer # 复用 tokenizer
+
+        messages = [{"role": "user", "content": request.prompt}]
+        text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = tokenizer(text, return_tensors="pt").to(model.device)
+
+        with torch.inference_mode(): # 使用 inference_mode 替代 no_grad，更适合推理
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=request.max_new_tokens,
+                temperature=request.temperature,
+                top_p=request.top_p,
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id
+            )
+        
+        # 精确地解码模型生成的新内容
+        response_ids = outputs[0][inputs.input_ids.shape[1]:]
+        generated_text = tokenizer.decode(response_ids, skip_special_tokens=True)
+
+        return {"generated_text": generated_text.strip()}
+    except Exception as e:
+        print(f"Error during SFT generation: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"An error occurred during generation: {e}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

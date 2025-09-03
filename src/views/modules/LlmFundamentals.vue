@@ -42,13 +42,18 @@
             id="embedding-input"
             type="text"
             class="form-control"
+            :class="{ 'is-invalid': embeddingInputError }"
             placeholder="输入逗号分隔的单词, e.g., king, queen, man, woman"
             v-model="embeddingWords"
+            @input="embeddingInputError = ''"
           />
           <button class="btn btn-primary" @click="getAndDrawEmbeddings" :disabled="loadingEmbeddings">
             <span v-if="loadingEmbeddings" class="spinner-border spinner-border-sm"></span>
             {{ loadingEmbeddings ? '计算中...' : '可视化向量' }}
           </button>
+        </div>
+        <div v-if="embeddingInputError" class="alert alert-warning py-2">
+          {{ embeddingInputError }}
         </div>
         <div ref="embeddingChartRef" id="embedding-chart" style="width: 100%; height: 400px;" class="border rounded bg-light"></div>
       </div>
@@ -66,25 +71,32 @@
           </button>
         </div>
         <div class="d-flex gap-3 mb-3 align-items-center">
-          <div class="col-auto">
+          <div class="col-auto" id="attention-layer-selector">
             <label for="layerSelect" class="form-label mb-0">注意力层 (Layer):</label>
             <select id="layerSelect" class="form-select" v-model.number="selectedLayer">
               <option v-for="n in 24" :key="n-1" :value="n-1">{{ n-1 }}</option>
             </select>
           </div>
-          <div class="col-auto">
+          <div class="col-auto" id="attention-head-selector">
             <label for="headSelect" class="form-label mb-0">注意力头 (Head):</label>
             <select id="headSelect" class="form-select" v-model.number="selectedHead">
               <option v-for="n in 16" :key="n-1" :value="n-1">{{ n-1 }}</option>
             </select>
           </div>
         </div>
-        <div id="attention-vis-area" class="p-4 border rounded bg-light fs-4" style="line-height: 2.5; position: relative;">
-          <span v-if="!attentionData.tokens.length && !loadingAttention">在此显示注意力结果...</span>
-          <span v-else v-for="(token, index) in attentionData.tokens" :key="index" :data-token-index="index" @mouseenter="highlightAttention(index)" class="attention-token">{{ token.replace(' ', ' ') }}</span>
-          <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
-            <line v-for="(line, index) in attentionLines" :key="index" :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2" stroke="rgba(118, 75, 162, 0.6)" :stroke-width="line.width" />
-          </svg>
+        <div id="attention-vis-area" class="p-4 border rounded bg-light fs-5" @mouseleave="resetAttentionHighlight">
+          <p v-if="!attentionData.tokens.length && !loadingAttention" class="text-muted text-center m-0">在此显示注意力结果...</p>
+          <div v-else class="d-flex flex-wrap">
+            <span 
+              v-for="(token, index) in attentionData.tokens" 
+              :key="index"
+              :data-token-index="index"
+              @mouseenter="highlightAttention(index)" 
+              class="attention-token"
+            >
+              {{ token.replace(' ', ' ') }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -115,21 +127,18 @@
         </div>
       </div>
     </div>
-    
-    <GuidancePopover v-if="guidance.visible" :title="guidance.title" :content="guidance.content" :button-text="guidance.buttonText" @confirm="nextGuideStep" :style="guidance.style" />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, reactive, onMounted, nextTick } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import * as echarts from 'echarts';
-import GuidancePopover from '@/components/GuidancePopover.vue';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
 // --- 状态定义 ---
 const colors = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99'];
-const inputText = ref('LLM is powerful');
+const inputText = ref('');
 const tokens = ref([]);
 const tokenizing = ref(false);
 const embeddingWords = ref('king, queen, man, woman');
@@ -141,19 +150,15 @@ const loadingAttention = ref(false);
 const selectedLayer = ref(0);
 const selectedHead = ref(0);
 const attentionData = ref({ tokens: [], attention: [] });
-const attentionLines = ref([]);
 const predictionPrefix = ref('The future of AI is');
 const loadingPrediction = ref(false);
 const predictions = ref([]);
-const guidance = reactive({ visible: false, step: 0, title: '', content: '', buttonText: '继续', style: {} });
+// 核心修改: 增加一个用于存储输入错误的 ref
+const embeddingInputError = ref('');
 
 // --- 函数定义 ---
-
 const fetchTokens = async () => {
-  if (!inputText.value.trim()) {
-    tokens.value = [];
-    return;
-  }
+  if (!inputText.value.trim()) { tokens.value = []; return; }
   if (tokenizing.value) return;
   tokenizing.value = true;
   try {
@@ -176,8 +181,20 @@ const fetchTokens = async () => {
 watch(inputText, fetchTokens);
 
 const getAndDrawEmbeddings = async () => {
+  // 核心修改: 增加输入验证逻辑
+  embeddingInputError.value = ''; // 重置错误信息
+
+  if (embeddingWords.value.includes('，')) {
+    embeddingInputError.value = '请使用英文逗号 "," 分隔单词，而不是中文逗号 "，"。';
+    return;
+  }
+
   const words = embeddingWords.value.split(',').map(w => w.trim()).filter(Boolean);
-  if (words.length < 2) return;
+  
+  if (words.length <= 1) {
+    embeddingInputError.value = '请输入至少两个单词以进行可视化比较。';
+    return;
+  }
   
   loadingEmbeddings.value = true;
   try {
@@ -188,20 +205,39 @@ const getAndDrawEmbeddings = async () => {
     });
     if (!response.ok) throw new Error('网络响应错误');
     const data = await response.json();
-    
+
     const chartOption = {
-      tooltip: { trigger: 'item', formatter: '{b}' },
-      xAxis: { name: 'Dimension 1' },
-      yAxis: { name: 'Dimension 2' },
+      tooltip: { 
+        trigger: 'item', 
+        formatter: '<b>{b}</b><br/>向量: ({c})'
+      },
+      xAxis: { name: 'Dimension 1', splitLine: { show: false } },
+      yAxis: { name: 'Dimension 2', splitLine: { show: false } },
       series: [{
-        symbolSize: 20,
-        data: data.vectors.map((vec, i) => ({ name: data.words[i], value: vec })),
-        type: 'scatter'
+        type: 'scatter',
+        symbolSize: 25,
+        data: data.vectors.map((vec, i) => ({ 
+            name: data.words[i], 
+            value: vec 
+        })),
+        label: {
+            show: true,
+            position: 'right',
+            formatter: '{b}',
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: '#333'
+        },
+        emphasis: {
+            focus: 'series',
+            label: { show: true }
+        }
       }]
     };
-    embeddingChart.setOption(chartOption);
+    embeddingChart.setOption(chartOption, true);
   } catch (error) {
     console.error('Embedding API 调用失败:', error);
+    embeddingInputError.value = 'API 调用失败，请检查后端服务是否正常。';
   } finally {
     loadingEmbeddings.value = false;
   }
@@ -231,29 +267,21 @@ const getAttentionData = async () => {
 };
 
 const highlightAttention = (sourceIndex) => {
-    const attentionScores = attentionData.value.attention[sourceIndex];
-    const tokenElements = document.querySelectorAll('[data-token-index]');
-    const sourceElement = tokenElements[sourceIndex];
-    if (!sourceElement) return;
+  if (!attentionData.value.attention || !attentionData.value.attention[sourceIndex]) return;
+  const attentionScores = attentionData.value.attention[sourceIndex];
+  const tokenElements = document.querySelectorAll('.attention-token');
+  tokenElements.forEach((targetElement, targetIndex) => {
+    const score = attentionScores[targetIndex];
+    targetElement.style.backgroundColor = `rgba(128, 0, 128, ${score * 0.8})`;
+    targetElement.style.color = score > 0.4 ? 'white' : 'black';
+  });
+};
 
-    const sourceRect = sourceElement.getBoundingClientRect();
-    const containerRect = sourceElement.parentElement.getBoundingClientRect();
-
-    const newLines = [];
-    attentionScores.forEach((score, targetIndex) => {
-        const targetElement = tokenElements[targetIndex];
-        if (!targetElement) return;
-
-        const targetRect = targetElement.getBoundingClientRect();
-        newLines.push({
-            x1: sourceRect.left + sourceRect.width / 2 - containerRect.left,
-            y1: sourceRect.top + sourceRect.height / 2 - containerRect.top,
-            x2: targetRect.left + targetRect.width / 2 - containerRect.left,
-            y2: targetRect.top + targetRect.height / 2 - containerRect.top,
-            width: score * 15 // 增大权重以便观察
-        });
-    });
-    attentionLines.value = newLines;
+const resetAttentionHighlight = () => {
+  document.querySelectorAll('.attention-token').forEach(el => {
+    el.style.backgroundColor = '';
+    el.style.color = '';
+  });
 };
 
 const predictNextToken = async () => {
@@ -276,59 +304,14 @@ const predictNextToken = async () => {
   }
 };
 
-const guideSteps = [
-  { targetId: 'tokenizer-module', title: '第一站：分词器', content: '模型不认识单词，只认识“Tokens”。分词器就是把你的话翻译成模型能懂的语言。' },
-  { targetId: 'tokenizer-input', title: '动手试试！', content: '在输入框里试试长单词，比如 "<strong>photosynthesis</strong>"，看看它如何被拆分。' },
-  { targetId: 'embedding-module', title: '第二站：词嵌入', content: '模型把每个Token变成高维空间中的一个“点”（向量）。意思相近的词，它们的“点”在空间中的距离也相近。' },
-  { targetId: 'embedding-input', title: '发现关系！', content: '输入 <strong>king, queen, man, woman</strong>，然后点击“可视化”，看看它们在空间中的位置关系！' },
-  { targetId: 'attention-module', title: '第三站：注意力', content: '这允许模型在处理一个词时，动态地关注句子中的其他相关词，从而理解上下文。' },
-  { targetId: 'attention-input', title: '探索上下文！', content: '点击“分析注意力”，然后将鼠标悬浮在 <strong>it</strong> 上，看看模型认为 <strong>it</strong> 指的是 <strong>robot</strong> 还是 <strong>apple</strong>。' },
-  { targetId: 'prediction-module', title: '最后一站：预测', content: '理解了前面的步骤后，模型就可以根据前面的Tokens，预测下一个最有可能出现的Token了。' },
-  { targetId: 'prediction-input', title: '来玩个游戏！', content: '输入一个句子的开头，看看模型续写的内容是否符合你的预期！' },
-];
-
-const startGuidance = () => {
-    // 核心修改：第一步不自动加载数据，而是等待用户确认
-    guidance.step = 0;
-    showCurrentGuide(false); // isActionStep = false
-};
-
-const nextGuideStep = async () => {
-  // 核心修改：在第一步确认时，触发第一次数据加载
-  if (guidance.step === 0) {
-      fetchTokens();
-  }
-
-  if (guidance.step < guideSteps.length - 1) {
-    guidance.step++;
-    await nextTick();
-    showCurrentGuide();
-  } else {
-    guidance.visible = false;
-  }
-};
-
-const showCurrentGuide = () => {
-  const currentStep = guideSteps[guidance.step];
-  const targetElement = document.getElementById(currentStep.targetId);
-  if (targetElement) {
-    const rect = targetElement.getBoundingClientRect();
-    guidance.style = { position: 'fixed', top: `${rect.top}px`, left: `${rect.right + 15}px`, transform: 'translateY(-20%)' };
-  }
-  guidance.title = currentStep.title;
-  guidance.content = currentStep.content;
-  guidance.buttonText = currentStep.buttonText || '继续';
-  guidance.visible = true;
-};
-
 onMounted(() => {
-  // 只执行绝对安全、不会触发渲染循环的操作
+  inputText.value = 'LLM is powerful';
+  
   if (embeddingChartRef.value) {
-    embeddingChart = echarts.init(embeddingChartRef.value);
+      embeddingChart = echarts.init(embeddingChartRef.value);
+      getAndDrawEmbeddings();
   }
-  startGuidance();
 });
-
 </script>
 
 <style scoped>
@@ -340,14 +323,13 @@ onMounted(() => {
     padding: 0 0.5rem;
 }
 .attention-token {
-    padding: 2px 5px;
-    margin: 2px;
-    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 3px;
+    border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
     display: inline-block;
-}
-.attention-token:hover {
-    background-color: #d6bbfb;
+    border: 1px solid #e0e0e0;
+    line-height: 1.5;
 }
 </style>
