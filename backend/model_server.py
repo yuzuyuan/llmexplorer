@@ -18,7 +18,7 @@ CHECKPOINT_BASE_PATH = os.path.join(backend_dir, "models", "qwen3-catgirl-lora-c
 base_model_cache = {}
 lora_model_cache = {}
 tokenizer_cache = None
-
+current_peft_model = None
 # --- 独立的 PyTorch 注意力模块 ---
 class StandaloneAttention(nn.Module):
     def __init__(self, hidden_dim):
@@ -82,7 +82,8 @@ class LlmBasicsModelServer:
     def tokenize(self, text):
         token_ids = self.tokenizer.encode(text)
         tokens = [clean_token_for_display(self.tokenizer.decode([token_id], skip_special_tokens=True)) for token_id in token_ids]
-        return {"tokens": [token for token in tokens if token]}
+        # FIX: Add token_ids to the return value
+        return {"tokens": [token for token in tokens if token], "token_ids": token_ids}
 
     def get_embeddings(self, words):
         high_dim_vectors = []

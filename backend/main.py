@@ -148,7 +148,7 @@ async def sft_generate(request: SftRequest) -> Dict[str, Any]:
         response_ids = outputs[0][inputs.input_ids.shape[1]:]
         generated_text = tokenizer.decode(response_ids, skip_special_tokens=True)
 
-        return {"generated_text": generated_text.strip()}
+        return {"reply": generated_text.strip()}
     except Exception as e:
         print(f"Error during SFT generation: {e}")
         import traceback

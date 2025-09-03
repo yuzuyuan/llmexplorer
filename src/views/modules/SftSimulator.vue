@@ -180,7 +180,7 @@ const handleChatSend = async (message) => {
   isChatting.value = true;
   
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/chat', {
+    const response = await fetch('http://127.0.0.1:8000/api/sft_generate', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

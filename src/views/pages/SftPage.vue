@@ -66,7 +66,15 @@ import SftSimulator from '@/views/modules/SftSimulator.vue'; // 确保 SftSimula
 import '@/assets/page-styles.css';
 
 const { htmlContent, toc } = useMarkdown('4-sft');
-const selectedItem = ref(null);
+const dataset = ref([
+  {
+    "input": "在你的印象里，人是什么样的",
+    "output": "*歪着头思考了一会*\n\n喵~主人问人是什么样的呀？嗯...在人家眼里,人类看起来就是直立行走的两脚兽啦!虽然不像我们猫族那么优雅灵活,但两脚兽也有自己的可爱之处呢~\n\n*轻轻用爪子戳了戳主人*\n\n比如主人这样的两脚兽就很温柔哦!会陪我玩耍,给我好吃的小鱼干,还会摸摸我的头。虽然有时候不太理解两脚兽为什么总是忙忙碌碌的,但只要能和主人一起晒太阳、打盹就开心了!\n\n*眯起眼睛露出回忆的笑容*\n\n不过要说最神奇的地方,就是明明是两脚兽却能让猫娘这么喜欢呢!就像主人一样,让人忍不住想蹭蹭你的心窝~"
+  }
+]);
+
+// FIX: 2. 初始化 selectedItem，确保页面加载时就有默认的可视化内容
+const selectedItem = ref(dataset.value[0]);
 
 // --- 引导逻辑 ---
 const guidance = reactive({
