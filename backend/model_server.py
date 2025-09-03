@@ -5,7 +5,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import PeftModel
 import os
 import numpy as np
-# 1. 引入 scikit-learn 的 TSNE 和 PCA
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 import math
@@ -72,6 +71,7 @@ def clean_token_for_display(token):
     return token.replace('Ġ', '').replace(' ', ' ').replace('\_', ' ').encode('ascii', 'ignore').decode('ascii').strip()
 
 class LlmBasicsModelServer:
+    # ... 此部分代码保持不变 ...
     def __init__(self):
         self.tokenizer = get_tokenizer()
         self.model = get_base_model()
@@ -84,9 +84,7 @@ class LlmBasicsModelServer:
         tokens = [clean_token_for_display(self.tokenizer.decode([token_id], skip_special_tokens=True)) for token_id in token_ids]
         return {"tokens": [token for token in tokens if token]}
 
-    # --- 核心修改: 在后端实现 t-SNE ---
     def get_embeddings(self, words):
-        # 1. 获取原始高维向量
         high_dim_vectors = []
         with torch.no_grad():
             for word in words:
@@ -99,8 +97,6 @@ class LlmBasicsModelServer:
         if high_dim_vectors.ndim == 1: 
             high_dim_vectors = np.expand_dims(high_dim_vectors, axis=0)
 
-        # 2. 使用 t-SNE 进行降维
-        # perplexity 参数需要小于样本数，这里做了保护
         n_samples = high_dim_vectors.shape[0]
         perplexity_value = min(30.0, float(n_samples - 1))
 
@@ -108,7 +104,6 @@ class LlmBasicsModelServer:
             tsne = TSNE(n_components=2, perplexity=perplexity_value, random_state=42)
             vectors_2d = tsne.fit_transform(high_dim_vectors)
         else:
-            # 如果只有一个词，无法进行 t-SNE，直接用 PCA 降维
             pca = PCA(n_components=2)
             vectors_2d = pca.fit_transform(high_dim_vectors)
 
@@ -141,5 +136,35 @@ class LlmBasicsModelServer:
                 response.append({"token": token, "probability": round(prob * 100, 2)})
         return {"predictions": response}
 
+class SftModelServer:
+    def __init__(self):
+        self.tokenizer = get_tokenizer()
+        self.loss_fn = nn.CrossEntropyLoss()
+
+    # --- 新增: Loss 计算方法 ---
+    def calculate_loss(self, model_id, context, target_token_id):
+        model = get_model_for_sft_inference(model_id)
+        
+        with torch.no_grad():
+            # 准备输入
+            inputs = self.tokenizer(context, return_tensors="pt").to(model.device)
+            
+            # 前向传播
+            outputs = model(**inputs)
+            
+            # 获取最后一个位置的 logits
+            logits = outputs.logits[:, -1, :] # shape: (batch_size, vocab_size)
+            
+            # 准备目标
+            # CrossEntropyLoss 需要 target 的 shape 为 (batch_size)
+            target = torch.tensor([target_token_id], device=model.device)
+            
+            # 计算 Loss
+            loss = self.loss_fn(logits, target)
+            
+            return {"loss": round(loss.item(), 4)} # 返回一个保留4位小数的浮点数
+
+# --- 实例化服务 ---
 sft_model_provider = get_model_for_sft_inference
 llm_basics_server = LlmBasicsModelServer()
+sft_server = SftModelServer() # 新增 SFT 服务实例

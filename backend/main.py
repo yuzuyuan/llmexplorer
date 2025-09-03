@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 
 # --- 核心修改：导入新的、分离的服务实例和函数 ---
-from model_server import llm_basics_server, sft_model_provider
+from model_server import llm_basics_server, sft_model_provider,sft_server
 
 # --- FastAPI 应用和CORS配置 ---
 app = FastAPI(
@@ -48,7 +48,10 @@ class SftRequest(BaseModel):
     max_new_tokens: int = 128
     temperature: float = 0.7
     top_p: float = 0.9
-
+class LossCalculationRequest(BaseModel):
+    model_id: str
+    context: str
+    target_token_id: int
 # --- API 路由定义 ---
 
 @app.get("/")
@@ -151,7 +154,13 @@ async def sft_generate(request: SftRequest) -> Dict[str, Any]:
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"An error occurred during generation: {e}")
-
+@app.post("/api/calculate_loss")
+async def calculate_loss(request: LossCalculationRequest):
+    """根据上下文和目标 Token，计算指定模型的 Loss。"""
+    try:
+        return sft_server.calculate_loss(request.model_id, request.context, request.target_token_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
