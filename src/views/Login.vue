@@ -2,17 +2,17 @@
 <template>
   <div class="row justify-content-center">
     <div class="col-md-6">
-      <h2 class="mb-4">登录</h2>
+      <h2 class="mb-4">Login</h2>
       <div v-if="error" class="alert alert-danger" role="alert">
         {{ error }}
       </div>
       <form @submit.prevent="handleLogin">
         <div class="mb-3">
-          <label for="email" class="form-label">邮箱</label>
+          <label for="email" class="form-label">Email</label>
           <input type="email" class="form-control" id="email" v-model="formData.email" required />
         </div>
         <div class="mb-3">
-          <label for="password" class="form-label">密码</label>
+          <label for="password" class="form-label">Password</label>
           <div class="input-group">
             <input
               :type="showPassword ? 'text' : 'password'"
@@ -33,14 +33,14 @@
             id="remember"
             v-model="formData.remember"
           />
-          <label class="form-check-label" for="remember">记住我</label>
+          <label class="form-check-label" for="remember">Remember me</label>
         </div>
         <button type="submit" class="btn btn-primary" :disabled="loading">
           <span v-if="loading" class="spinner-border spinner-border-sm" role="status"></span>
-          {{ loading ? '登录中...' : '登录' }}
+          {{ loading ? 'Logging in...' : 'Login' }}
         </button>
-        <router-link to="/register" class="btn btn-link ms-2">还没有账号？立即注册</router-link>
-        <a href="#" class="ms-3">忘记密码？</a>
+        <router-link to="/register" class="btn btn-link ms-2">Don't have an account? Register now</router-link>
+        <a href="#" class="ms-3">Forgot password?</a>
       </form>
     </div>
   </div>

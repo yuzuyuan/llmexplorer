@@ -12,7 +12,7 @@ export function useMarkdown(slug) {
   const loadContent = async () => {
     if (!slug) return;
     try {
-      const mdText = await fetch(`/src/content/${slug}.md`).then((res) => {
+      const mdText = await fetch(`/content/${slug}.md`).then((res) => {
         if (!res.ok) throw new Error(`无法加载 ${slug}.md`);
         return res.text();
       });

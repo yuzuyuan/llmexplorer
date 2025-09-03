@@ -5,7 +5,7 @@
         <header>
           <div class="avatar">
             <!-- Fixed image name -->
-            <img src="@/images/members/Sok_Chhunheang.jpg" alt="Sok Chhunheang" />
+            <img src="/images/members/Sok_Chhunheang.jpg" alt="Sok Chhunheang" />
           </div>
           <div class="header-info">
             <h1>Hi — I'm Sok Chhunheang</h1>

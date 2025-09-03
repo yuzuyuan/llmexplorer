@@ -31,5 +31,35 @@ import LlmFundamentals from '../modules/LlmFundamentals.vue';
 import { useMarkdown } from '@/composables/useMarkdown.js';
 import '@/assets/page-styles.css';
 
+// 正确加载和使用 useMarkdown
 const { htmlContent, toc } = useMarkdown('1-llm-basics');
 </script>
+
+<style scoped>
+/* 侧边栏样式 */
+.toc-sidebar {
+  position: sticky;
+  top: 2rem;
+  height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+.toc-title {
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+.toc-link {
+  color: #6c757d;
+  text-decoration: none;
+  display: block;
+  padding: 0.25rem 0;
+}
+.toc-link:hover {
+  color: #0d6efd;
+}
+.toc-level-3 {
+  padding-left: 1rem;
+}
+.toc-level-4 {
+  padding-left: 2rem;
+}
+</style>

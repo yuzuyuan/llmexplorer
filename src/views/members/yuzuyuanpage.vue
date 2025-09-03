@@ -2,7 +2,7 @@
   <div class="member-profile-page">
     <div class="profile-container">
       <div class="profile-pic-wrapper">
-        <img src="@/images/members/yuzuyuan.jpg" alt="Yu Zuyuan" class="profile-pic" />
+        <img src="/images/members/yuzuyuan.jpg" alt="Yu Zuyuan" class="profile-pic" />
       </div>
       <h1 class="headline">Hi, I'm Yu Zuyuan! 💻</h1>
       <p class="bio">

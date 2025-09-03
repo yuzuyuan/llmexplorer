@@ -1,35 +1,61 @@
-# llm-knowledge-base
 
-This template should help get you started developing with Vue 3 in Vite.
+# LLM Explorer 一键启动指南
 
-## Recommended IDE Setup
+欢迎使用 LLM Explorer！这是一个交互式的学习平台，旨在帮助您探索和理解大语言模型（LLM）的核心概念。
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+本指南将引导您完成应用的安装和运行。
 
-## Customize configuration
+## 1. 运行环境要求
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+在开始之前，请确保您的电脑满足以下条件：
 
-## Project Setup
+* **操作系统**: Windows 10 或 Windows 11 (64位)。
+* **硬件**: 一块 **NVIDIA 显卡 (GPU)**，并已安装最新的显卡驱动程序。
+    * **如何检查**: 您可以尝试在命令提示符(CMD)或PowerShell中运行 `nvidia-smi` 命令。如果能成功显示您的显卡信息，则表示驱动正常。
 
-```sh
-npm install
-```
+## 2. 首次运行与安装
 
-### Compile and Hot-Reload for Development
+首次运行脚本时，它会自动为您安装一个完全独立的环境，这个过程**需要连接互联网**并且会花费一些时间。
 
-```sh
-npm run dev
-```
+**步骤如下：**
 
-### Compile and Minify for Production
+1.  **解压文件**: 将您收到的 `.zip` 压缩包解压到一个您方便访问的位置，例如 `D:\LLM-Explorer`。
 
-```sh
-npm run build
-```
+2.  **确认模型文件**:
+    * 解压后，请确认根目录下的 `models` 文件夹内已包含 `qwen3-0.6b` 模型文件夹。**本项目已将所需模型打包提供，您无需另外下载。**
 
-### Lint with [ESLint](https://eslint.org/)
+3.  **启动应用**:
+    * 双击运行根目录下的 `start.bat` 文件。
+    * 此时会弹出一个黑色命令行窗口，开始进行首次设置。请耐心等待，直到您看到 **"LLM Explorer is now running"** 的提示，并且浏览器自动打开了应用页面。
 
-```sh
-npm run lint
-```
+## 3. 日常运行
+
+在首次成功安装后，之后每次想使用本应用时，只需直接双击 `start.bat` 脚本即可快速启动服务。
+
+## 4. 将要下载的配置和所需模型
+
+`start.bat` 脚本在首次运行时，为了创建独立的运行环境，会自动从互联网下载并安装以下组件。所有组件均安装在程序文件夹内部，不会影响您的主系统。
+
+* **核心环境**:
+    * **Miniconda**: 一个迷你的 Python 环境管理器。脚本会自动安装它来创建一个私有的、与系统隔离的 Python 环境。
+
+* **主要Python依赖包 (部分列表)**:
+    * `Python 3.11`
+    * `PyTorch (GPU版)`: 深度学习框架，用于驱动模型运算。
+    * `Transformers`: Hugging Face 官方库，用于加载和使用大模型。
+    * `bitsandbytes`: 用于模型的4-bit量化，极大降低显存消耗。
+    * `accelerate`, `peft`: Hugging Face 生态的加速和微调工具。
+    * `FastAPI`, `uvicorn`: 用于构建和运行后端API服务。
+    * `http.server`: Python内置的、用于托管前端页面的轻量级Web服务器。
+
+* **已包含的模型文件**:
+    * **`qwen3-0.6b`**: 这是应用运行所必需的核心大语言模型。**此模型已包含在软件包中，位于 `models` 文件夹内，您无需下载。**
+
+## 5. 如何彻底删除
+
+本应用是“绿色版”，所有生成的文件都包含在项目文件夹内部，因此删除过程非常简单、彻底。
+
+1.  **关闭应用**: 如果应用正在运行，请先关闭 `start.bat` 那个黑色的命令行窗口，服务会自动停止。
+2.  **删除文件夹**: 直接将整个项目文件夹（例如 `D:\LLM-Explorer`）删除。
+
+完成以上两步后，所有与本应用相关的文件，包括自动安装的 Conda 环境、所有下载的 Python 依赖包，都已被**彻底清除**，不会在您的电脑上留下任何残留文件或注册表项。

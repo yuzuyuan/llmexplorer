@@ -17,7 +17,7 @@
     <div class="team-grid">
       <div class="member-card" v-for="member in members" :key="member.name">
         <div class="member-avatar-container">
-          <img :src="`/src/images/members/${member.image}`" :alt="member.name" class="member-avatar" />
+          <img :src="`/images/members/${member.image}`" :alt="member.name" class="member-avatar" />
         </div>
         <div class="member-info">
           <h3 class="member-name">{{ member.name }}</h3>

@@ -5,13 +5,13 @@
         <header>
           <div class="header-content">
             <img
-              src="@/images/members/KyawKyawTun.jpg"
+              src="/images/members/KyawKyawTun.jpg"
               alt="Kyaw Kyaw Tun"
               class="avatar"
             />
             <div class="info">
               <h1>Kyaw Kyaw Tun</h1>
-              <h2>Software Engineering Student</h2>
+              <h2>Sophomore, Software Engineering</h2>
               <p>Beijing Institute of Technology</p>
             </div>
           </div>
@@ -19,14 +19,23 @@
 
         <main class="content">
           <section class="about">
-            <h3><i class="fas fa-user-circle"></i> 关于我</h3>
+            <h3><i class="fas fa-user-circle"></i> About Me</h3>
             <p>
-              我是一名充满热情和好奇心的学生，热衷于学习新知识、探索新思想，并将其付诸实践。在我的学术生涯中，我打下了坚实的批判性思维、有效沟通和协作解决问题的基础。
+              Hello! My name is Kyaw Kyaw Tun, a sophomore majoring in Software Engineering at Beijing Institute of Technology. I am passionate about technology, coding, and building solutions that can have a real impact. My journey into the world of computer science began with a curiosity about how software works and has since developed into a strong drive to become a skilled engineer who contributes meaningfully to society through technology.
+            </p>
+            <p>
+              As a student, I enjoy exploring different areas of computer science, from algorithms and data structures to web and mobile development. I’m especially interested in artificial intelligence and large-scale systems. I believe that by combining creativity and technical knowledge, software can solve pressing global challenges and improve lives in countless ways.
+            </p>
+            <p>
+              Beyond academics, I enjoy working on personal coding projects, collaborating with peers, and engaging in technology communities. These experiences not only help me sharpen my technical skills but also build my teamwork and communication abilities. I also believe in lifelong learning, so I’m constantly seeking out resources, books, and opportunities to broaden my knowledge.
+            </p>
+            <p>
+              Looking ahead, I aspire to grow as a software engineer who can bridge the gap between theory and practical applications. Whether it’s developing software for businesses, contributing to open-source projects, or exploring new innovations, I am eager to keep learning and evolving. My ultimate goal is to use technology to create meaningful change in society while continuing to challenge myself as a professional.
             </p>
           </section>
 
           <section class="skills">
-            <h3><i class="fas fa-cogs"></i> 技能</h3>
+            <h3><i class="fas fa-cogs"></i> Skills</h3>
             <div class="skill-grid">
               <div class="skill-item">
                 <i class="fab fa-python"></i><span>Python</span>
@@ -40,7 +49,7 @@
           </section>
 
           <section class="contact">
-            <h3><i class="fas fa-envelope"></i> 联系方式</h3>
+            <h3><i class="fas fa-envelope"></i> Contact</h3>
             <div class="contact-grid">
               <a href="mailto:kyawkyawtun@example.com" class="contact-item"
                 ><i class="fas fa-envelope-open-text"></i> kyawkyawtun@example.com</a
@@ -59,7 +68,7 @@
         </main>
          <div class="navigation-container">
             <router-link to="/team" class="nav-button">
-              ← 返回小组页面
+              ← Back to Team Page
             </router-link>
         </div>
       </div>

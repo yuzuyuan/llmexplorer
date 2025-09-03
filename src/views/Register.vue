@@ -2,7 +2,7 @@
 <template>
   <div class="row justify-content-center">
     <div class="col-md-6">
-      <h2 class="mb-4">注册</h2>
+      <h2 class="mb-4">Register</h2>
       <div v-if="message" class="alert alert-success" role="alert">
         {{ message }}
       </div>
@@ -11,7 +11,7 @@
       </div>
       <form @submit.prevent="handleRegister">
         <div class="mb-3">
-          <label for="username" class="form-label">用户名</label>
+          <label for="username" class="form-label">Username</label>
           <input
             type="text"
             class="form-control"
@@ -21,11 +21,11 @@
           />
         </div>
         <div class="mb-3">
-          <label for="email" class="form-label">邮箱</label>
+          <label for="email" class="form-label">Email</label>
           <input type="email" class="form-control" id="email" v-model="formData.email" required />
         </div>
         <div class="mb-3">
-          <label for="password" class="form-label">密码</label>
+          <label for="password" class="form-label">Password</label>
           <div class="input-group">
             <input
               :type="showPassword ? 'text' : 'password'"
@@ -40,7 +40,7 @@
           </div>
         </div>
         <div class="mb-3">
-          <label for="confirmPassword" class="form-label">确认密码</label>
+          <label for="confirmPassword" class="form-label">Confirm Password</label>
           <div class="input-group">
             <input
               :type="showConfirmPassword ? 'text' : 'password'"
@@ -62,13 +62,13 @@
             v-model="formData.agree"
             required
           />
-          <label class="form-check-label" for="agree">我同意服务条款</label>
+          <label class="form-check-label" for="agree">I agree to the terms of service</label>
         </div>
         <button type="submit" class="btn btn-success" :disabled="loading">
           <span v-if="loading" class="spinner-border spinner-border-sm" role="status"></span>
-          {{ loading ? '注册中...' : '注册' }}
+          {{ loading ? 'Registering...' : 'Register' }}
         </button>
-        <router-link to="/login" class="btn btn-link ms-2">已有账号？立即登录</router-link>
+        <router-link to="/login" class="btn btn-link ms-2">Already have an account? Login now</router-link>
       </form>
     </div>
   </div>

@@ -41,10 +41,10 @@
         <div class="card" aria-label="Profile preview">
           <div class="portrait">
             <picture>
-              <source type="image/avif" src="@/images/members/wuliam.jpg" />
-              <source type="image/webp" src="@/images/members/wuliam.jpg" />
+              <source type="image/avif" src="/images/members/wuliam.jpg" />
+              <source type="image/webp" src="/images/members/wuliam.jpg" />
               <img
-                src="@/images/members/wuliam.jpg"
+                src="/images/members/wuliam.jpg"
                 alt="Portrait of Wulliam Gosandra（吴威廉）"
                 loading="lazy"
                 width="600"

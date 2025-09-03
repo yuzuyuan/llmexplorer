@@ -29,7 +29,7 @@ export function useCombinedMarkdown(slugs = []) {
       const allHeadings = [];
 
       for (const slug of slugs) {
-        const mdText = await fetch(`/src/content/${slug}.md`).then((res) => {
+        const mdText = await fetch(`/content/${slug}.md`).then((res) => {
           if (!res.ok) throw new Error(`无法加载 ${slug}.md`);
           return res.text();
         });

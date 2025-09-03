@@ -5,7 +5,7 @@
         <header>
           <div class="header-content">
             <img
-              src="@/images/members/waris.jpg"
+              src="/images/members/waris.jpg"
               alt="Waris"
               class="avatar"
             />
