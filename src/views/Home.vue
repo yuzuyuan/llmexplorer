@@ -25,6 +25,7 @@
       </div>
     </div>
   </div>
+  
 
   <div class="container" style="margin-top: 4rem;">
     <div style="text-align: center; margin-bottom: 2rem;">
@@ -50,6 +51,9 @@ import llmBasicsImage from '@/assets/images/tokenizer.png';
 import promptEngineeringImage from '@/assets/images/prompt.png';
 import ragImage from '@/assets/images/rag.png';
 import sftImage from '@/assets/images/sft.png';
+// **1. 导入新功能的图片**
+import transformerBuilderImage from '@/assets/images/transformer.png'; // <-- 新增
+
 const modules = [
   {
     title: 'LLM Basics',
@@ -78,11 +82,20 @@ const modules = [
     link: '/kb/4-sft',
     image:
       sftImage,
+  },
+  // **2. 将新功能作为一个模块添加到数组中**
+  { // <-- 新增
+    title: 'Transformer Builder',
+    desc: 'Visually build and train a complete Transformer model for translation. Dive into the architecture with interactive drag-and-drop components.',
+    link: '/transformer-trainer',
+    image:
+      transformerBuilderImage,
   }
 ]
 </script>
 
 <style scoped>
+/* 您的所有现有样式都保持不变，这里无需改动 */
 .hero-section {
   position: relative;
   height: 60vh;

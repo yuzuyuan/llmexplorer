@@ -17,6 +17,7 @@ const PromptEngineeringPage = () => import('../views/pages/PromptEngineeringPage
 const RagPage = () => import('../views/pages/RagPage.vue');
 const SftPage = () => import('../views/pages/SftPage.vue');
 const ArticlesPage = () => import('../views/pages/ArticlesPage.vue');
+const TransformerTrainerPage = () => import('../views/pages/TransformerTrainerPage.vue');
 const routes = [
   { path: '/', component: Home },
   { path: '/team', component: Team },
@@ -28,6 +29,7 @@ const routes = [
   { path: '/kb/2-prompt-engineering', component: PromptEngineeringPage },
   { path: '/kb/3-rag', component: RagPage },
   { path: '/kb/4-sft', component: SftPage },
+  { path: '/transformer-trainer', component: TransformerTrainerPage },
   // 成员个人页面路由
   { path: '/member/yu-zuyuan', component: YuZuyuanPage },
   { path: '/member/song-chuncheng', component: SongChunchengPage },

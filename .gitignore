@@ -35,3 +35,4 @@ coverage
 /blob-report/
 /playwright/.cache/
 /backend/models/
+/law

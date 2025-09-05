@@ -1,5 +1,21 @@
 <template>
   <div class="container my-4">
+    <div class="page-header-actions">
+      <button @click="startGuidance('prompt')" class="btn btn-outline-primary">
+        <i class="bi bi-info-circle-fill me-1"></i>
+        入门引导
+      </button>
+    </div>
+
+    <GuidancePopover
+      v-if="guidanceState.visible"
+      :title="guidanceState.title"
+      :content="guidanceState.content"
+      :button-text="guidanceState.buttonText"
+      @confirm="nextGuideStep"
+      @close="closeGuidance"
+    />
+
     <div class="row">
       <div class="col-lg-3 d-none d-lg-block">
         <aside class="toc-sidebar">
@@ -27,10 +43,27 @@
 </template>
 
 <script setup>
-// 修正：导入正确的 PromptEngineering 组件
+import { onMounted } from 'vue';
 import PromptEngineering from '../modules/PromptEngineering.vue';
 import { useMarkdown } from '@/composables/useMarkdown.js';
+import GuidancePopover from '@/components/GuidancePopover.vue';
+import { useGuidance } from '@/composables/useGuidance.js'; // 导入重构后的引导
 import '@/assets/page-styles.css';
 
 const { htmlContent, toc } = useMarkdown('2-prompt-engineering');
+const { guidanceState, startGuidance, nextGuideStep, closeGuidance } = useGuidance();
+
+onMounted(() => {
+  // 传入 'prompt' 参数来启动正确的引导
+  startGuidance('prompt');
+});
 </script>
+
+<style scoped>
+.page-header-actions {
+  text-align: right;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 10;
+}
+</style>

@@ -6,17 +6,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
-
+import transformer_trainer as tt
+from rag_pipeline import  rerank_only,retrieve_only
 # --- 核心修改：导入新的、分离的服务实例和函数 ---
-from model_server import llm_basics_server, sft_model_provider,sft_server
-
+from model_server import get_tokenizer,llm_basics_server, sft_model_provider,sft_server
+import logging
 # --- FastAPI 应用和CORS配置 ---
 app = FastAPI(
   title="LLM Explorer Backend",
   description="API server for the LLM Explorer application, providing model inference and other services.",
   version="1.0.0"
 )
-
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 # 为了方便开发，允许所有来源
 app.add_middleware(
     CORSMiddleware,
@@ -27,7 +29,19 @@ app.add_middleware(
 )
 
 # --- 数据模型定义 (Request/Response Models) ---
+class RagQueryRequest(BaseModel):
+    query: str
 
+class RerankRequest(BaseModel):
+    query: str
+    documents: List[Dict[str, Any]]
+
+class GenerationRequest(BaseModel):
+    query: str
+    context: str
+class TrainRequest(BaseModel):
+    components: List[Dict[str, Any]]
+    connections: List[Dict[str, Any]]
 class TokenizeRequest(BaseModel):
     text: str
 
@@ -52,6 +66,8 @@ class LossCalculationRequest(BaseModel):
     model_id: str
     context: str
     target_token_id: int
+class PromptEngRequest(BaseModel):
+    prompt: str
 # --- API 路由定义 ---
 
 @app.get("/")
@@ -161,6 +177,172 @@ async def calculate_loss(request: LossCalculationRequest):
         return sft_server.calculate_loss(request.model_id, request.context, request.target_token_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+@app.post("/api/transformer/train")
+async def train_transformer_model(request: TrainRequest):
+    logger.info("Received Transformer training request")
+    try:
+        # 1. 解析前端发来的模型结构配置
+        config = {}
+        encoder_blocks = [c for c in request.components if c['type'] == 'encoder_block']
+        decoder_blocks = [c for c in request.components if c['type'] == 'decoder_block']
+
+        config['num_encoder_layers'] = len(encoder_blocks)
+        config['num_decoder_layers'] = len(decoder_blocks)
+        
+        if not encoder_blocks or not decoder_blocks:
+            return {"status": "error", "logs": ["模型结构不完整，必须同时包含编码器和解码器块。"]}
+
+        # 使用第一个编码器块的参数作为全局参数
+        config['heads'] = encoder_blocks[0]['params']['heads']
+        config['ff_dim'] = encoder_blocks[0]['params']['ff_dim']
+
+        embedding_layer = next((c for c in request.components if c['type'] == 'embedding'), None)
+        config['embed_dim'] = embedding_layer['params']['embed_dim'] if embedding_layer else 512
+        
+        logger.info(f"Parsed model config: {config}")
+
+        # 2. 设定数据集的准确路径
+        # 该路径是相对于项目根目录（即 start_server.bat 所在的位置）
+        data_path = os.path.join("backend", "dldemos", "Transformer", "data")
+        
+        # 增加路径检查，提供更明确的错误信息
+        if not os.path.exists(os.path.join(data_path, 'train.cn')):
+             return {"status": "error", "logs": [f"错误：在路径 '{data_path}' 下找不到 train.cn 文件。", "请确认已将 cn.txt 和 en.txt 分别重命名为 train.cn 和 train.en。"]}
+
+        # 3. 调用我们最终版的训练流程
+        logs = tt.start_training_process(config, data_path)
+        
+        return {"status": "Training complete", "logs": logs}
+
+    except Exception as e:
+        logger.error(f"An error occurred during transformer training: {e}", exc_info=True)
+        return {"status": "error", "logs": [f"API层出现严重错误: {e}", "请检查后端控制台以获取详细的追溯信息。"]}
+
+@app.post("/api/rag/retrieve")
+async def handle_rag_retrieve(request: RagQueryRequest):
+    """
+    接收用户问题，只执行向量检索并返回初步结果。
+    """
+    try:
+        retrieval_results = retrieve_only(request.query)
+        return retrieval_results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/rag/rerank")
+async def handle_rag_rerank(request: RerankRequest):
+    """
+    接收初步检索结果和问题，执行重排序并返回精排结果。
+    """
+    try:
+        rerank_results = rerank_only(request.query, request.documents)
+        return rerank_results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/rag/generate")
+async def handle_rag_generate(request: GenerationRequest):
+    """
+    接收最终的上下文和问题，调用LLM生成答案。
+    """
+    try:
+        prompt_template = f"""
+        请严格根据以下【参考资料】，简洁、准确、专业地回答用户的问题。”。
+
+        【参考资料】:
+        {request.context}
+
+        ---
+        【用户的问题】:
+        {request.query}
+
+        【你的回答】:
+        """
+        model = sft_model_provider("base")
+        tokenizer = get_tokenizer()
+        messages = [{"role": "user", "content": prompt_template}]
+        text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = tokenizer(text, return_tensors="pt").to(model.device)
+        with torch.inference_mode():
+            outputs = model.generate(
+                **inputs, max_new_tokens=512, temperature=0.1, top_p=0.9,
+                do_sample=True, pad_token_id=tokenizer.eos_token_id
+            )
+        response_ids = outputs[0][inputs.input_ids.shape[1]:]
+        final_answer = tokenizer.decode(response_ids, skip_special_tokens=True)
+        return {"final_answer": final_answer.strip(), "final_prompt": prompt_template}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+# --- Prompt Engineering 页面 API (核心修改) ---
+@app.post("/api/prompt-eng-judge")
+async def judge_prompt(request: PromptEngRequest):
+    """
+    接收用户的Prompt，调用qwen3-0.6b模型生成邮件，并根据Prompt本身评分。
+    """
+    user_prompt = request.prompt
+    
+    # 1. 根据用户Prompt的关键词进行评分 (简易逻辑保持不变)
+    score = 30
+    feedback = '评分较低。提示词可能不够清晰，导致邮件格式或内容有欠缺。'
+    
+    prompt_lower = user_prompt.lower()
+    if '邮件' in prompt_lower and ('邀请' in prompt_lower or '通知' in prompt_lower): score += 20
+    if '专业' in prompt_lower or '正式' in prompt_lower: score += 15
+    if '角色' in prompt_lower or '扮演' in prompt_lower: score += 10
+    if '简洁' in prompt_lower or '清晰' in prompt_lower: score += 5
+    if '格式' in prompt_lower or '标题' in prompt_lower: score += 10
+    
+    if score >= 80:
+        feedback = '非常棒的Prompt！清晰、具体，包含了角色、任务和风格要求，能生成高质量的邮件。'
+    elif score >= 50:
+        feedback = '不错的尝试！Prompt提供了基本信息，但可以更具体，比如指定语气或格式。'
+
+    # 2. 构建发送给真实模型的完整指令
+    # 我们将任务背景和用户的Prompt结合起来
+    full_prompt_to_model = f"""
+    你是一名专业的行政助理。
+    请根据以下要点，撰写一封会议邀请邮件：
+    - 会议主题：第二季度产品规划
+    - 时间：下周三下午2点
+    - 地点：301会议室
+    - 参会人：产品部、研发部负责人
+
+    现在，请严格按照用户的以下指示来生成这封邮件：
+    ---
+    用户指示："{user_prompt}"
+    ---
+    你的邮件内容：
+    """
+
+    # 3. 调用 qwen3-0.6b 模型生成邮件内容
+    try:
+        model = sft_model_provider("base")
+        tokenizer = get_tokenizer()
+
+        messages = [{"role": "user", "content": full_prompt_to_model}]
+        text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = tokenizer(text, return_tensors="pt").to(model.device)
+
+        with torch.inference_mode():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=256, # 邮件内容不需要太长
+                temperature=0.7,   # 允许一定的创造性
+                top_p=0.9,
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id
+            )
+        
+        response_ids = outputs[0][inputs.input_ids.shape[1]:]
+        model_output = tokenizer.decode(response_ids, skip_special_tokens=True).strip()
+
+    except Exception as e:
+        print(f"调用模型时发生错误: {e}")
+        raise HTTPException(status_code=500, detail="模型生成内容时发生错误。")
+
+
+    return {"score": score, "feedback": feedback, "output": model_output}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

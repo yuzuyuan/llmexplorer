@@ -1,0 +1,39 @@
+{
+  "task": "translation",
+  "architecture": [
+    { "id": "src_input_1", "type": "source_input", "label": "源语言输入", "position": { "x": 50, "y": 150 }, "params": {} },
+    { "id": "src_embedding_1", "type": "embedding", "label": "源嵌入层", "params": { "embed_dim": 512 }, "position": { "x": 230, "y": 150 } },
+    { "id": "src_pos_enc_1", "type": "positional_encoding", "label": "源位置编码", "params": { "dropout": 0.1 }, "position": { "x": 410, "y": 150 } },
+    { "id": "encoder_1", "type": "encoder_block", "label": "编码器 #1", "params": { "heads": 8, "ff_dim": 2048 }, "position": { "x": 620, "y": 150 } },
+    { "id": "encoder_2", "type": "encoder_block", "label": "编码器 #2", "params": { "heads": 8, "ff_dim": 2048 }, "position": { "x": 800, "y": 150 } },
+    { "id": "encoder_3", "type": "encoder_block", "label": "编码器 #3", "params": { "heads": 8, "ff_dim": 2048 }, "position": { "x": 980, "y": 150 } },
+    
+    { "id": "tgt_input_1", "type": "target_input", "label": "目标语言输入", "position": { "x": 50, "y": 450 }, "params": {} },
+    { "id": "tgt_embedding_1", "type": "embedding", "label": "目标嵌入层", "params": { "embed_dim": 512 }, "position": { "x": 230, "y": 450 } },
+    { "id": "tgt_pos_enc_1", "type": "positional_encoding", "label": "目标位置编码", "params": { "dropout": 0.1 }, "position": { "x": 410, "y": 450 } },
+    { "id": "decoder_1", "type": "decoder_block", "label": "解码器 #1", "params": { "heads": 8, "ff_dim": 2048 }, "position": { "x": 620, "y": 450 } },
+    { "id": "decoder_2", "type": "decoder_block", "label": "解码器 #2", "params": { "heads": 8, "ff_dim": 2048 }, "position": { "x": 800, "y": 450 } },
+    { "id": "decoder_3", "type": "decoder_block", "label": "解码器 #3", "params": { "heads": 8, "ff_dim": 2048 }, "position": { "x": 980, "y": 450 } },
+
+    { "id": "output_layer_1", "type": "output_layer", "label": "输出层", "position": { "x": 1190, "y": 450 }, "params": {} }
+  ],
+  "connections": [
+    { "from": "src_input_1", "to": "src_embedding_1" },
+    { "from": "src_embedding_1", "to": "src_pos_enc_1" },
+    { "from": "src_pos_enc_1", "to": "encoder_1" },
+    { "from": "encoder_1", "to": "encoder_2" },
+    { "from": "encoder_2", "to": "encoder_3" },
+
+    { "from": "tgt_input_1", "to": "tgt_embedding_1" },
+    { "from": "tgt_embedding_1", "to": "tgt_pos_enc_1" },
+    { "from": "tgt_pos_enc_1", "to": "decoder_1" },
+    { "from": "decoder_1", "to": "decoder_2" },
+    { "from": "decoder_2", "to": "decoder_3" },
+    
+    { "from": "encoder_3", "to": "decoder_1", "type": "cross_attention" },
+    { "from": "encoder_3", "to": "decoder_2", "type": "cross_attention" },
+    { "from": "encoder_3", "to": "decoder_3", "type": "cross_attention" },
+    
+    { "from": "decoder_3", "to": "output_layer_1" }
+  ]
+}

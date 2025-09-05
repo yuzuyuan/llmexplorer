@@ -11,6 +11,7 @@
         <router-link to="/kb/2-prompt-engineering" class="nav-link">Prompt Engineering</router-link>
         <router-link to="/kb/3-rag" class="nav-link">RAG</router-link>
         <router-link to="/kb/4-sft" class="nav-link">Fine-Tuning</router-link>
+        <router-link to="/transformer-trainer" class="nav-link">Transformer Builder</router-link> <router-link to="/team" class="nav-link">Our Team</router-link>
         <router-link to="/team" class="nav-link">Our Team</router-link>
       </nav>
       <div class="header-actions">
