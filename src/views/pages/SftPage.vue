@@ -10,7 +10,7 @@
       </button>
     </div>
 
-    <GuidancePopover 
+    <GuidancePopover
       v-if="guidance.visible"
       :title="guidance.title"
       :content="guidance.content"
@@ -41,7 +41,7 @@
           <DatasetExplorer id="dataset-explorer" @item-selected="selectedItem = $event" />
           <SftStepVisualizer id="sft-step-visualizer" :dataset-item="selectedItem" />
         </div>
-        
+
         <div class="mt-5" id="sft-simulator">
             <SftSimulator />
         </div>
@@ -109,7 +109,7 @@ const updateGuidanceContent = async () => {
     }
 };
 
-onMounted(() => { 
+onMounted(() => {
     // 首次进入页面时自动开启引导
     toggleGuidance();
 });

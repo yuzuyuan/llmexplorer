@@ -28,10 +28,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # --- 数据模型定义 (Request/Response Models) ---
 class RagQueryRequest(BaseModel):
     query: str
-
+class TokenizeRequest(BaseModel):
+    text: str
 class RerankRequest(BaseModel):
     query: str
     documents: List[Dict[str, Any]]
@@ -55,7 +57,7 @@ class AttentionRequest(BaseModel):
 
 class PredictRequest(BaseModel):
     text: str
-
+    
 class SftRequest(BaseModel):
     model_id: str
     prompt: str
@@ -75,6 +77,23 @@ def read_root():
     return {"message": "LLM Explorer Backend is running"}
 
 # --- SFT 页面相关API (从原始 main.py 中恢复) ---
+@app.post("/api/sft/visualizer_tokenize")
+async def visualizer_tokenize(request: TokenizeRequest):
+    """
+    专门为SFT可视化器提供的Tokenize端点。
+    使用 .tokenize() 方法来正确地将文本转换为Token字符串列表，
+    以解决单ID解码不准确的问题。
+    """
+    try:
+        tokenizer = get_tokenizer()
+        # .tokenize() 直接返回模型实际处理的Token字符串列表
+        tokens = tokenizer.tokenize(request.text)
+        # 然后再将这些正确的Token字符串转换为ID
+        token_ids = tokenizer.convert_tokens_to_ids(tokens)
+        return {"tokens": tokens, "token_ids": token_ids}
+    except Exception as e:
+        logger.error(f"Visualizer Tokenize 发生错误: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Tokenization for visualizer failed.")
 
 @app.get("/api/sft/golden_predictions")
 def get_golden_predictions():

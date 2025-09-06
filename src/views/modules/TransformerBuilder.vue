@@ -35,11 +35,11 @@
       <div class="component-library card shadow-sm">
         <div class="card-header fw-bold">组件库</div>
         <div class="card-body">
-          <div 
-            v-for="comp in componentLibrary" 
+          <div
+            v-for="comp in componentLibrary"
             :key="comp.type"
             class="draggable-component"
-            :style="{ borderColor: comp.color }"
+            :style="{ borderColor: comp.color, '--component-color': comp.color }"
             draggable="true"
             @dragstart="onDragStart($event, comp.type)"
           >
@@ -48,14 +48,14 @@
         </div>
       </div>
 
-      <div 
+      <div
         class="canvas card shadow-sm"
         id="canvas"
         ref="canvasRef"
-        @dragover.prevent 
+        @dragover.prevent
         @drop="onDrop"
       >
-        <div 
+        <div
           v-for="component in components"
           :key="component.id"
           class="canvas-component"
@@ -67,7 +67,7 @@
         >
           {{ component.label }}
         </div>
-        
+
         <svg class="connections-svg">
           <defs>
             <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -150,7 +150,7 @@ const onDrop = (event) => {
   const canvasRect = canvasRef.value.getBoundingClientRect();
   const x = event.clientX - canvasRect.left;
   const y = event.clientY - canvasRect.top;
-  
+
   const compInfo = componentLibrary.find(c => c.type === type);
   const newId = `${type}_${Date.now()}`;
 
@@ -181,7 +181,7 @@ const startDragComponent = (component, event) => {
     draggedComponent = component;
     const compElement = document.getElementById(component.id);
     const compRect = compElement.getBoundingClientRect();
-    
+
     offset.x = event.clientX - compRect.left;
     offset.y = event.clientY - compRect.top;
 
@@ -236,7 +236,7 @@ const getConnectionPath = (conn) => {
   const startY = fromRect.top - canvasRect.top + fromRect.height / 2;
   const endX = toRect.left - canvasRect.left;
   const endY = toRect.top - canvasRect.top + toRect.height / 2;
-  
+
   const controlX1 = startX + Math.abs(endX - startX) * 0.5;
   const controlY1 = startY;
   const controlX2 = endX - Math.abs(endX - startX) * 0.5;
@@ -303,78 +303,105 @@ const startTraining = async () => {
   border: 1px solid #dee2e6;
   padding: 1rem;
   border-radius: 0.5rem;
-  background-color: #fff;
+  background-color: #f8f9fa;
 }
-.main-layout { 
-  display: grid; 
-  grid-template-columns: 220px 1fr 320px; 
-  gap: 1rem; 
-  min-height: 70vh;
+.main-layout {
+  display: grid;
+  /* 定义3列用于对齐：左侧组件库，中间弹性空白，右侧参数面板 */
+  grid-template-columns: 240px 1fr 320px;
+  /* 定义2行：一行给顶部面板，一行给画布 */
+  grid-template-rows: auto minmax(600px, 1fr);
+  gap: 1.5rem;
+  min-height: 80vh;
 }
+.component-library {
+  grid-column: 1 / 2; /* 放置在第1列 */
+  grid-row: 1 / 2;    /* 放置在第1行 */
+}
+.parameter-panel {
+  grid-column: 3 / 4; /* 放置在第3列 */
+  grid-row: 1 / 2;    /* 放置在第1行 */
+}
+.canvas {
+  grid-column: 1 / 4; /* 让画布横跨所有3列 */
+  grid-row: 2 / 3;    /* 放置在第2行 */
+  position: relative;
+  min-height: 600px;
+  background-color: #e9ecef;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  overflow: auto;
+  border: 1px solid #ced4da;
+  border-radius: 0.5rem;
+}
+
 .component-library .card-body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 .draggable-component {
-  padding: 0.75rem;
+  padding: 1rem;
   border: 2px solid;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   text-align: center;
-  font-weight: 500;
-  background-color: #f8f9fa;
+  font-weight: 600;
+  background-color: #fff;
   cursor: grab;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
 }
 .draggable-component:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+  color: var(--component-color);
 }
 
-.canvas { 
-  position: relative; 
-  min-height: 600px; 
-  background-color: #f8f9fa;
-  overflow: auto; /* 改为 auto 以便内容溢出时显示滚动条 */
-  border: 1px dashed #ccc;
-}
-.canvas-component { 
-  position: absolute; 
+.canvas-component {
+  position: absolute;
   border: 2px solid;
-  padding: 1rem; 
-  background: white; 
-  cursor: pointer; 
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1.25rem 1.5rem;
+  background: white;
+  cursor: move;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   transition: box-shadow 0.2s, transform 0.2s;
-  user-select: none; /* 防止拖动时选中文本 */
+  user-select: none;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
-.canvas-component.selected { 
+.canvas-component.selected {
   border-width: 3px;
-  box-shadow: 0 0 12px rgba(255,193,7,0.8); 
-  transform: scale(1.02);
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.3), 0 6px 15px rgba(0,0,0,0.2);
+  transform: scale(1.03);
   z-index: 10;
 }
 
-.connections-svg { 
-  position: absolute; 
-  top: 0; 
-  left: 0; 
-  width: 200%; /* 扩大SVG区域以容纳更长的连接线 */
+.connections-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
   height: 200%;
-  pointer-events: none; 
+  pointer-events: none;
 }
-.connection-path { 
-  stroke-width: 2.5; 
-  fill: none; 
+.connection-path {
+  stroke-width: 2.5;
+  fill: none;
 }
 .connection-path.normal {
   stroke: #6c757d;
 }
-.connection-path.cross_attention { 
-  stroke: #fd7e14; 
-  stroke-dasharray: 6,6; 
+.connection-path.cross_attention {
+  stroke: #fd7e14;
+  stroke-dasharray: 6,6;
 }
 .parameter-panel .form-label {
   font-weight: 500;

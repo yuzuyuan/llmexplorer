@@ -36,5 +36,5 @@ coverage
 /playwright/.cache/
 /backend/models/
 /law
-/backend/chroma_db_law"backend/chroma_db_law/" 
-"backend/chroma_db_law/" 
+/backend/chroma_db_law
+

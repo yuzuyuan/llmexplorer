@@ -5,26 +5,38 @@
     </div>
     <div class="card-body p-4">
       <div class="row align-items-center mb-4">
-        <div class="col-md-3"><strong>选择学生:</strong></div>
+        <div class="col-md-3"><strong>选择学生 (模型):</strong></div>
         <div class="col-md-9">
           <select class="form-select" v-model="selectedModel">
             <option value="base">基础模型 (Base Model)</option>
+            <option value="checkpoint-20">微调中 (checkpoint-20)</option>
+            <option value="checkpoint-40">微调中 (checkpoint-40)</option>
+            <option value="checkpoint-60">微调中 (checkpoint-60)</option>
+            <option value="checkpoint-80">微调中 (checkpoint-80)</option>
             <option value="checkpoint-100">微调后模型 (checkpoint-100)</option>
-            </select>
+          </select>
         </div>
       </div>
-      
+
       <div v-if="datasetItem">
-        <p><strong>考题:</strong> "正确回答" 的每一个 Token 都是一道考题。</p>
-        <div class="p-3 border rounded bg-light fs-5">
-          <span 
-            v-for="(token, index) in targetTokens" 
+        <p><strong>考题:</strong></p>
+        <div class="p-3 border rounded bg-light mb-3">
+          <p class="mb-1"><strong>指令:</strong> {{ datasetItem.instruction }}</p>
+          <p class="mb-0"><strong>输入:</strong> {{ datasetItem.input || '(无)' }}</p>
+        </div>
+        <p><strong>正确回答 (已过滤符号):</strong> (将鼠标悬浮在每个文字Token上进行考察)</p>
+        <div v-if="targetTokens.length > 0" class="p-3 border rounded bg-light fs-5 token-container">
+          <span
+            v-for="(token, index) in targetTokens"
             :key="index"
             class="interactive-token"
             @mouseenter="inspectToken(index)"
           >
             {{ token.text }}
           </span>
+        </div>
+        <div v-else class="alert alert-warning mt-2">
+          此条数据的“正确回答”中没有可供考察的文字Token。
         </div>
       </div>
 
@@ -46,8 +58,8 @@
             <div v-else class="d-flex flex-column gap-2">
               <div v-for="p in inspectionResult.predictions" :key="p.token" class="row g-2 align-items-center">
                 <div class="col-3 text-end">
-                  <span 
-                    class="fw-bold" 
+                  <span
+                    class="fw-bold"
                     :class="{ 'text-success': p.isCorrect, 'text-danger': !p.isCorrect }"
                   >
                     {{ p.token }}
@@ -78,16 +90,19 @@ const props = defineProps({
 });
 
 const selectedModel = ref('base');
-const targetTokens = ref([]); // { text, id }
+const originalTokens = ref([]);
+const targetTokens = ref([]);
 const inspectionResult = ref(null);
 const loadingInspection = ref(false);
 
-let tokenizerCache = {}; // 简单的 tokenizer 缓存
+let tokenizerCache = {};
 
+// **核心修改：调用新的、专用的API端点**
 const tokenizeText = async (text) => {
-  if (tokenizerCache[text]) return tokenizerCache[text];
+  const cacheKey = `visualizer_${text}`;
+  if (tokenizerCache[cacheKey]) return tokenizerCache[cacheKey];
   try {
-    const response = await fetch(`${API_BASE_URL}/api/tokenize`, {
+    const response = await fetch(`${API_BASE_URL}/api/sft/visualizer_tokenize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
@@ -95,34 +110,48 @@ const tokenizeText = async (text) => {
     if (!response.ok) return [];
     const data = await response.json();
     const result = data.tokens.map((token, index) => ({ text: token, id: data.token_ids[index] }));
-    tokenizerCache[text] = result;
+    tokenizerCache[cacheKey] = result;
     return result;
   } catch (error) {
+    console.error("Visualizer Tokenization failed:", error);
     return [];
   }
 };
 
 watch(() => props.datasetItem, async (newItem) => {
   if (newItem && newItem.output) {
-    inspectionResult.value = null; // 重置结果
-    targetTokens.value = await tokenizeText(newItem.output);
+    inspectionResult.value = null;
+    originalTokens.value = await tokenizeText(newItem.output);
+
+    // 过滤掉符号，只保留文字和数字用于显示
+    const regex = /^[\p{L}\p{N}]+$/u;
+    targetTokens.value = originalTokens.value
+      .map((token, originalIndex) => ({ ...token, originalIndex }))
+      .filter(token => {
+        const cleanedText = token.text.replace(/ /g, '').trim(); //  处理Qwen tokenizer可能产生的前缀' '
+        return regex.test(cleanedText);
+      });
   }
 }, { immediate: true });
 
 let debounceTimer;
-const inspectToken = (index) => {
+const inspectToken = (filteredIndex) => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(async () => {
+    if (!props.datasetItem) return;
+
+    const currentToken = targetTokens.value[filteredIndex];
+    const originalIndex = currentToken.originalIndex;
+
     loadingInspection.value = true;
     inspectionResult.value = null;
 
-    const fullPrompt = `指令: ${props.datasetItem.instruction}\n输入: ${props.datasetItem.input}\n输出: `;
-    const contextTokens = targetTokens.value.slice(0, index).map(t => t.text);
+    const fullPrompt = `指令: ${props.datasetItem.instruction}\n输入: ${props.datasetItem.input || ''}\n输出: `;
+    const contextTokens = originalTokens.value.slice(0, originalIndex).map(t => t.text);
     const context = fullPrompt + contextTokens.join('');
-    const targetToken = targetTokens.value[index];
+    const targetToken = originalTokens.value[originalIndex];
 
     try {
-      // 并行请求 Loss 和 Prediction
       const [lossRes, predRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/calculate_loss`, {
           method: 'POST',
@@ -136,7 +165,10 @@ const inspectToken = (index) => {
         fetch(`${API_BASE_URL}/api/predict_next`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: context }),
+          body: JSON.stringify({
+            text: context,
+            model_id: selectedModel.value
+          }),
         })
       ]);
 
@@ -159,14 +191,14 @@ const inspectToken = (index) => {
     } finally {
       loadingInspection.value = false;
     }
-  }, 300); // 300ms 防抖
+  }, 300);
 };
 
 const lossClass = computed(() => {
   if (!inspectionResult.value) return '';
   const loss = inspectionResult.value.loss;
   if (loss > 5) return 'loss-high';
-  if (loss > 1) return 'loss-medium';
+  if (loss > 2) return 'loss-medium';
   return 'loss-low';
 });
 
@@ -174,13 +206,16 @@ const lossDescription = computed(() => {
   if (!inspectionResult.value) return '';
   const loss = inspectionResult.value.loss;
   if (loss > 5) return '差距巨大，模型完全预测错了。';
-  if (loss > 1) return '有一定差距，模型感到困惑。';
+  if (loss > 2) return '有一定差距，模型感到困惑。';
   return '差距很小，模型预测得很好！';
 });
 
 </script>
 
 <style scoped>
+.token-container {
+  line-height: 2.5;
+}
 .interactive-token {
   padding: 4px 8px;
   margin: 3px;
