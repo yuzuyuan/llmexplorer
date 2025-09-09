@@ -71,7 +71,6 @@ def build():
         return
 
     def process_documents(docs):
-        # ... (此函数不变) ...
         all_chunks = []
         for doc in docs:
             content = doc.page_content; metadata = doc.metadata
