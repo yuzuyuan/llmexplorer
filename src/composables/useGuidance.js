@@ -51,6 +51,14 @@ const promptGuideSteps = [
     { targetId: 'prompt-generate-button', title: '生成并获取评分', content: '点击此按钮，“裁判模型”会根据您 Prompt 的质量和生成结果的好坏给出一个分数。'},
     { targetId: 'prompt-result-display', title: '查看结果与反馈', content: '在这里您可以看到模型的输出、您的得分以及裁判的反馈。不断尝试优化您的 Prompt，争取获得更高的分数，成为一名 Prompt 工程师吧！'}
 ];
+const transformerBuilderSteps = [
+    { targetId: 'component-library', title: '欢迎来到 Transformer Builder!', content: '在这里，您将亲手搭建一个完整的 Transformer 翻译模型。首先，让我们认识一下您的“乐高积木”——组件库。' },
+    { targetId: 'component-library', title: '认识组件', content: '左侧是构建 Transformer 所需的所有核心组件，例如**嵌入层**、**编码器**和**解码器**。将它们拖拽到右侧的画布上，开始您的搭建之旅吧！' },
+    { targetId: 'canvas', title: '搭建您的模型', content: '这里是您的工作区。尝试拖拽一个“源语言输入”和一个“嵌入层”到画布上，将它们连接起来，构成模型的第一步。' },
+    { targetId: 'classic-model-btn', title: '一键配置经典模型', content: '如果您想快速开始，可以点击此按钮，系统会自动为您加载一个经典的翻译模型架构。' },
+    { targetId: 'parameter-panel', title: '调整参数', content: '点击画布上的任意组件，您可以在右侧的“参数面板”中调整其内部参数，例如**嵌入维度(embed_dim)**或**注意力头数(heads)**。' },
+    { targetId: 'start-training-btn', title: '开始训练', content: '当您的模型搭建完成后，点击此按钮即可开始训练！您可以在下方的日志窗口中观察训练过程中的损失(loss)变化。' },
+];
 
 // 步骤2：重构引导逻辑以支持多页面
 
@@ -68,6 +76,7 @@ const allGuides = {
     llmBasics: llmBasicsSteps,
     rag: ragGuideSteps,
     prompt: promptGuideSteps,
+    transformer: transformerBuilderSteps,
 };
 
 // 启动函数：接收一个类型参数

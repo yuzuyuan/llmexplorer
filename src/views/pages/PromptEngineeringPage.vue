@@ -1,5 +1,5 @@
 <template>
-  <div class="container my-4">
+  <div class="container my-4" ref="pageContainerRef">
     <div class="page-header-actions">
       <button @click="startGuidance('prompt')" class="btn btn-outline-primary">
         <i class="bi bi-info-circle-fill me-1"></i>
@@ -31,7 +31,7 @@
       </div>
       <div class="col-lg-9">
         <div class="mb-5 pb-4 border-bottom">
-          <PromptEngineering />
+          <PromptEngineering @interaction="handleInteraction" />
         </div>
         <div class="mt-4">
           <h2 class="text-center fw-bold mb-4">相关知识文档</h2>
@@ -43,19 +43,43 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import PromptEngineering from '../modules/PromptEngineering.vue';
 import { useMarkdown } from '@/composables/useMarkdown.js';
 import GuidancePopover from '@/components/GuidancePopover.vue';
-import { useGuidance } from '@/composables/useGuidance.js'; // 导入重构后的引导
+import { useGuidance } from '@/composables/useGuidance.js';
+import { useAchievements } from '@/composables/useAchievements';
 import '@/assets/page-styles.css';
 
 const { htmlContent, toc } = useMarkdown('2-prompt-engineering');
 const { guidanceState, startGuidance, nextGuideStep, closeGuidance } = useGuidance();
+const { unlockAchievement, trackInteraction } = useAchievements();
+const pageContainerRef = ref(null);
+
+// --- Achievement Tracking ---
+const achievementId = 'read_prompt_engineering';
+const interactionAchievementId = 'interact_prompt_engineering';
+
+const handleScroll = () => {
+  const element = document.documentElement;
+  if (element.scrollHeight - element.scrollTop <= element.clientHeight + 1) {
+    unlockAchievement(achievementId);
+  }
+};
+
+const handleInteraction = (interactionId) => {
+  trackInteraction('prompt_engineering', interactionId);
+  // This page only has one main interaction button, so we can unlock directly.
+  unlockAchievement(interactionAchievementId);
+};
 
 onMounted(() => {
-  // 传入 'prompt' 参数来启动正确的引导
   startGuidance('prompt');
+  window.addEventListener('scroll', handleScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
 });
 </script>
 

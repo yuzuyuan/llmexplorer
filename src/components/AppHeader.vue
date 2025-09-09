@@ -11,22 +11,59 @@
         <router-link to="/kb/2-prompt-engineering" class="nav-link">Prompt Engineering</router-link>
         <router-link to="/kb/3-rag" class="nav-link">RAG</router-link>
         <router-link to="/kb/4-sft" class="nav-link">Fine-Tuning</router-link>
-        <router-link to="/transformer-trainer" class="nav-link">Transformer Builder</router-link> <router-link to="/team" class="nav-link">Our Team</router-link>
+        <router-link to="/transformer-trainer" class="nav-link">Transformer Builder</router-link>
+        <router-link to="/team" class="nav-link">Our Team</router-link>
       </nav>
       <div class="header-actions">
-        <router-link to="/login" class="btn btn-secondary">Login</router-link>
-        <router-link to="/register" class="btn btn-primary">Register</router-link>
+        <div class="dropdown">
+          <button class="btn btn-light rounded-circle" type="button" @click="handleUserIconClick">
+            <i class="bi bi-person-circle fs-4"></i>
+          </button>
+        </div>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-// No script changes needed
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+
+const user = ref(null);
+const router = useRouter();
+
+const checkUserStatus = () => {
+  const currentUser = localStorage.getItem('currentUser');
+  user.value = currentUser ? JSON.parse(currentUser) : null;
+};
+
+const handleUserIconClick = () => {
+  if (user.value) {
+    router.push('/account');
+  } else {
+    router.push('/auth');
+  }
+};
+
+onMounted(() => {
+  checkUserStatus();
+  window.addEventListener('storage', checkUserStatus);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('storage', checkUserStatus);
+});
 </script>
 
 <style scoped>
-/* Styles remain the same */
+.header-actions .btn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 其他样式保持不变 */
 .app-header {
   background-color: #fff;
   border-bottom: 1px solid #e5e7eb;
@@ -80,37 +117,5 @@
 .nav-link.router-link-exact-active {
   color: #3b82f6;
   border-bottom-color: #3b82f6;
-}
-
-.header-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.btn {
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  text-align: center;
-}
-
-.btn-primary {
-  background-color: #3b82f6;
-  color: #fff;
-}
-
-.btn-primary:hover {
-  background-color: #2563eb;
-}
-
-.btn-secondary {
-  background-color: #e5e7eb;
-  color: #1f2937;
-}
-
-.btn-secondary:hover {
-  background-color: #d1d5db;
 }
 </style>

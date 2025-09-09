@@ -139,7 +139,7 @@ const handleRegister = () => {
 
     // 2秒后跳转到登录页面
     setTimeout(() => {
-      router.push('/login')
+      router.push('/account')
     }, 2000)
   } catch (err) {
     error.value = err.message

@@ -1,5 +1,5 @@
 <template>
-  <div class="container my-4">
+  <div class="container my-4" ref="pageContainerRef">
     <div class="page-header-actions">
       <button @click="restartGuidance" class="btn btn-outline-info me-2">
         <i class="bi bi-arrow-clockwise me-1"></i>重看引导
@@ -38,12 +38,12 @@
             <h2 class="fw-bold">SFT 微调原理探究</h2>
             <p class="lead text-muted">深入训练的每一步，亲眼见证模型如何通过“批改作业”来学习。</p>
           </div>
-          <DatasetExplorer id="dataset-explorer" @item-selected="selectedItem = $event" />
-          <SftStepVisualizer id="sft-step-visualizer" :dataset-item="selectedItem" />
+          <DatasetExplorer id="dataset-explorer" @item-selected="selectedItem = $event" @interaction="handleInteraction('dataset-nav')" />
+          <SftStepVisualizer id="sft-step-visualizer" :dataset-item="selectedItem" @interaction="handleInteraction('model-select')" />
         </div>
 
         <div class="mt-5" id="sft-simulator">
-            <SftSimulator />
+            <SftSimulator @interaction="handleInteraction" />
         </div>
 
         <div class="mt-5">
@@ -59,24 +59,48 @@
 import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue';
 import { useMarkdown } from '@/composables/useMarkdown.js';
 import GuidancePopover from '@/components/GuidancePopover.vue';
-// 引入所有需要的组件
 import DatasetExplorer from '@/views/modules/DatasetExplorer.vue';
 import SftStepVisualizer from '@/views/modules/SftStepVisualizer.vue';
-import SftSimulator from '@/views/modules/SftSimulator.vue'; // 确保 SftSimulator 被正确引入
+import SftSimulator from '@/views/modules/SftSimulator.vue';
+import { useAchievements } from '@/composables/useAchievements';
 import '@/assets/page-styles.css';
 
 const { htmlContent, toc } = useMarkdown('4-sft');
+const { unlockAchievement, trackInteraction } = useAchievements();
+const pageContainerRef = ref(null);
+
 const dataset = ref([
   {
     "input": "在你的印象里，人是什么样的",
-    "output": "*歪着头思考了一会*\n\n喵~主人问人是什么样的呀？嗯...在人家眼里,人类看起来就是直立行走的两脚兽啦!虽然不像我们猫族那么优雅灵活,但两脚兽也有自己的可爱之处呢~\n\n*轻轻用爪子戳了戳主人*\n\n比如主人这样的两脚兽就很温柔哦!会陪我玩耍,给我好吃的小鱼干,还会摸摸我的头。虽然有时候不太理解两脚兽为什么总是忙忙碌碌的,但只要能和主人一起晒太阳、打盹就开心了!\n\n*眯起眼睛露出回忆的笑容*\n\n不过要说最神奇的地方,就是明明是两脚兽却能让猫娘这么喜欢呢!就像主人一样,让人忍不住想蹭蹭你的心窝~"
+    "output": "*歪着头思考了一会*..."
   }
 ]);
-
-// FIX: 2. 初始化 selectedItem，确保页面加载时就有默认的可视化内容
 const selectedItem = ref(dataset.value[0]);
 
-// --- 引导逻辑 ---
+// --- Achievement Tracking ---
+const achievementId = 'read_sft';
+const interactionAchievementId = 'interact_sft';
+const requiredInteractions = ['dataset-nav', 'model-select', 'chat-send', 'start-simulation'];
+
+const handleScroll = () => {
+  const element = document.documentElement;
+  if (element.scrollHeight - element.scrollTop <= element.clientHeight + 1) {
+    unlockAchievement(achievementId);
+  }
+};
+
+const handleInteraction = (interactionId) => {
+  trackInteraction('sft', interactionId);
+
+  const interactions = JSON.parse(localStorage.getItem('interactions_sft') || '[]');
+  const allInteracted = requiredInteractions.every(id => interactions.includes(id));
+
+  if (allInteracted) {
+    unlockAchievement(interactionAchievementId);
+  }
+};
+
+// --- Guidance ---
 const guidance = reactive({
   visible: false, step: 0, title: '', content: '', buttonText: '',
 });
@@ -110,29 +134,21 @@ const updateGuidanceContent = async () => {
 };
 
 onMounted(() => {
-    // 首次进入页面时自动开启引导
     toggleGuidance();
+    window.addEventListener('scroll', handleScroll);
 });
 
 onUnmounted(() => {
-  // 离开页面时确保清除高亮
   document.querySelectorAll('.highlight-guide').forEach(el => el.classList.remove('highlight-guide'));
+  window.removeEventListener('scroll', handleScroll);
 });
 </script>
 
 <style scoped>
-.toc-sidebar {
-  position: sticky; top: 2rem; height: calc(100vh - 4rem); overflow-y: auto;
-}
-.toc-title { font-weight: bold; margin-bottom: 1rem; }
-.toc-link {
-  color: #6c757d; text-decoration: none; display: block; padding: 0.25rem 0;
-}
-.toc-link:hover { color: #0d6efd; }
 .page-header-actions {
   text-align: right;
   margin-bottom: 1rem;
   position: relative;
-  z-index: 10; /* 确保按钮在最上层 */
+  z-index: 10;
 }
 </style>

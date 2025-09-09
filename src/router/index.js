@@ -3,7 +3,7 @@ import Home from '../views/Home.vue'
 import Team from '../views/Team.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
-
+import Account from '../views/Account.vue'
 
 // 成员个人页面组件
 const YuZuyuanPage = () => import('../views/members/yuzuyuanpage.vue')
@@ -22,7 +22,9 @@ const routes = [
   { path: '/', component: Home },
   { path: '/team', component: Team },
   { path: '/login', component: Login },
+  { path: '/account', component: Account, meta: { requiresAuth: true } },
   { path: '/register', component: Register },
+  { path: '/account', component: Account },
   { path: '/articles', component: ArticlesPage },
     // 更新知识库路由指向新的独立页面
   { path: '/kb/1-llm-basics', component: LlmBasicsPage },
@@ -43,5 +45,13 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 })
+router.beforeEach((to, from, next) => {
+  const loggedIn = localStorage.getItem('currentUser');
+  if (to.matched.some(record => record.meta.requiresAuth) && !loggedIn) {
+    next('/auth');
+  } else {
+    next();
+  }
+});
 
 export default router

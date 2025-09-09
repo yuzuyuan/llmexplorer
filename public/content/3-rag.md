@@ -38,6 +38,24 @@ RAG带来的核心价值非常精炼：
 
 这个过程，就是 RAG 的核心！它将一个需要依赖“记忆”的闭卷考试，变成了一个考察“信息检索和整合能力”的开卷考试，大大提升了回答的准确性和时效性。
 
+<div class="quiz-container" data-quiz-id="quiz1"></div>
+<script type="application/json" id="quiz1-data">
+{
+  "question": "根据“开卷考试”的类比，RAG技术中的“检索 (Retrieve)”步骤相当于什么？",
+  "options": [
+    "学生根据自己的记忆直接写答案。",
+    "老师为学生准备好考试的重点摘要。",
+    "学生在参考书中快速查找与问题相关的章节。",
+    "学生将最终答案誊写到答题卡上。"
+  ],
+  "correctAnswerIndex": 2,
+  "feedback": {
+    "correct": "完全正确！检索步骤的核心就是从外部知识库中高效地找出与问题最相关的信息片段。",
+    "incorrect": "不对哦。再思考一下“开卷考试”时，拿到问题后的第一步动作是什么？"
+  }
+}
+</script>
+
 ## 🛠️ 3. 核心组件深度拆解 (The "Design Choices")
 
 要搭建一个高效的 RAG 系统，就像打造一套精密的考试工具，每个环节都至关重要。
@@ -57,6 +75,24 @@ RAG带来的核心价值非常精炼：
     -   这是一个工程细节，需要去重、高亮匹配片段，并确保所有内容拼接后不超过模型的 token 限制（即“token 预算”）。
 -   **溯源与引用 (Citations)**：
     -   在整个流程中，必须严格追踪每个信息片段的来源文档 ID 和具体位置。 这是实现“有据可查”的关键。可以在 Prompt 中明确指示模型，当引用了资料时，必须以特定格式标注出来。
+
+<div class="quiz-container" data-quiz-id="quiz2"></div>
+<script type="application/json" id="quiz2-data">
+{
+  "question": "在RAG系统中，Reranking（重排序）步骤的主要目的是什么？",
+  "options": [
+    "将长文档切分成更小的片段。",
+    "加快初始的关键词搜索速度。",
+    "对初步检索到的结果进行精读和筛选，找出最相关的片段。",
+    "将最终答案格式化为JSON。"
+  ],
+  "correctAnswerIndex": 2,
+  "feedback": {
+    "correct": "正确！Reranking 就像一个“复核员”，它在快速初筛后进行更精细的检查，确保提供给模型的都是最优质的材料。",
+    "incorrect": "这个步骤发生在初步检索之后，它的目的是为了提升“质量”而非“速度”。"
+  }
+}
+</script>
 
 ## 💼 4. 业界应用与案例 (Real-World Impact)
 
@@ -92,6 +128,24 @@ RAG 不是一个停留在论文里的概念，它已经广泛落地于各种真�
 -   当你希望模型“成为”一个特定领域的专家（学习其思维和表达方式）时，选择 **Fine-tuning**。
 -   当你希望模型能“利用”特定领域的知识（查询事实信息）时，选择 **RAG**。
 -   在许多高级应用中，两者会**结合使用**：先对模型进行微调，让它适应领域风格，再用 RAG 为其提供实时数据。
+
+<div class="quiz-container" data-quiz-id="quiz3"></div>
+<script type="application/json" id="quiz3-data">
+{
+  "question": "如果你的目标是让一个通用大模型学会模仿你们公司独特的、略带幽默的客服沟通风格，应该优先选择哪种技术？",
+  "options": [
+    "RAG，因为它能接入最新的产品信息。",
+    "Fine-tuning，因为它能让模型学习并模仿特定的行为和风格。",
+    "两种方法效果一样。",
+    "不需要任何技术，直接用通用模型即可。"
+  ],
+  "correctAnswerIndex": 1,
+  "feedback": {
+    "correct": "非常正确！Fine-tuning的核心优势在于“教授技能和风格”，这正是该场景下的核心诉求。",
+    "incorrect": "再想想看，这个任务的核心是“知识注入”还是“行为模仿”？不同的技术有不同的专长。"
+  }
+}
+</script>
 
 ## 🔭 6. 局限与未来 (What's Next?)
 

@@ -1,6 +1,22 @@
 <template>
-  <div class="container my-4">
-    <div class.center="row">
+  <div class="container my-4" ref="pageContainerRef">
+    <div class="page-header-actions">
+      <button @click="startGuidance('transformer')" class="btn btn-outline-primary">
+        <i class="bi bi-info-circle-fill me-1"></i>
+        入门引导
+      </button>
+    </div>
+
+     <GuidancePopover
+      v-if="guidanceState.visible"
+      :title="guidanceState.title"
+      :content="guidanceState.content"
+      :button-text="guidanceState.buttonText"
+      @confirm="nextGuideStep"
+      @close="closeGuidance"
+    />
+
+    <div class="row">
       <div class="col-lg-3 d-none d-lg-block">
         <aside class="toc-sidebar">
           <nav v-if="toc.length > 0">
@@ -17,9 +33,9 @@
       <div class="col-lg-9">
         <div class="mb-5 pb-4 border-bottom">
           <h1 class="text-center fw-bold mb-4">Transformer Builder</h1>
-          <TransformerBuilder />
+          <TransformerBuilder @interaction="handleInteraction" />
         </div>
-        
+
         <div class="mt-4">
           <h2 class="text-center fw-bold mb-4">相关知识文档</h2>
           <div v-html="htmlContent" class="markdown-body"></div>
@@ -30,17 +46,57 @@
 </template>
 
 <script setup>
-// Import the interactive component
+import { onMounted, onUnmounted, ref } from 'vue';
 import TransformerBuilder from '../modules/TransformerBuilder.vue';
-// Import the composable to handle markdown rendering
 import { useMarkdown } from '@/composables/useMarkdown.js';
-// Import shared page styles, including for the markdown body and TOC
+import GuidancePopover from '@/components/GuidancePopover.vue';
+import { useGuidance } from '@/composables/useGuidance.js';
+import { useAchievements } from '@/composables/useAchievements';
 import '@/assets/page-styles.css';
 
-// Use the composable to get HTML content and TOC from the new markdown file
 const { htmlContent, toc } = useMarkdown('5-transformer');
+const { guidanceState, startGuidance, nextGuideStep, closeGuidance } = useGuidance();
+const { unlockAchievement, trackInteraction } = useAchievements();
+const pageContainerRef = ref(null);
+
+// --- Achievement Tracking ---
+const achievementId = 'read_transformer';
+const interactionAchievementId = 'interact_transformer';
+const requiredInteractions = ['load-classic', 'start-training', 'clear-canvas', 'drop-component'];
+
+const handleScroll = () => {
+  const element = document.documentElement;
+  if (element.scrollHeight - element.scrollTop <= element.clientHeight + 1) {
+    unlockAchievement(achievementId);
+  }
+};
+
+const handleInteraction = (interactionId) => {
+  trackInteraction('transformer', interactionId);
+
+  const interactions = JSON.parse(localStorage.getItem('interactions_transformer') || '[]');
+  const allInteracted = requiredInteractions.every(id => interactions.includes(id));
+
+  if (allInteracted) {
+    unlockAchievement(interactionAchievementId);
+  }
+};
+
+onMounted(() => {
+  startGuidance('transformer');
+  window.addEventListener('scroll', handleScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+});
 </script>
 
 <style scoped>
-/* Scoped styles can be added here if needed */
+.page-header-actions {
+  text-align: right;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 10;
+}
 </style>

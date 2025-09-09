@@ -97,8 +97,8 @@ const handleLogin = () => {
       )
     }
 
-    // 跳转到首页
-    router.push('/')
+    // 跳转到账户页面
+    router.push('/account')
   } catch (err) {
     error.value = err.message
   } finally {
