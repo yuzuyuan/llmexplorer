@@ -129,24 +129,6 @@ SFT 通常只是模型对齐的第一步，它教会模型“如何回答”，�
 
 **一句话总结**：**SFT** 是“开卷考试”，教模型基础解题能力；**RLHF/DPO** 是“闭卷大考后的名师点评”，教模型解题的“品味”和“境界”。一个完整的对齐流程通常是：**SFT ➡️ RLHF/DPO**。
 
-<div class="quiz-container" data-quiz-id="quiz3"></div>
-<script type="application/json" id="quiz3-data">
-{
-  "question": "SFT, RLHF, DPO这三种技术在模型对齐流程中通常是什么样的关系？",
-  "options": [
-    "它们是三种完全独立、互不相干的技术。",
-    "通常先用RLHF或DPO，再用SFT进行补充。",
-    "通常先用SFT进行基础的指令遵循训练，再用RLHF或DPO进行偏好对齐。",
-    "DPO是SFT的升级版，可以完全替代SFT。"
-  ],
-  "correctAnswerIndex": 2,
-  "feedback": {
-    "correct": "非常准确！一个典型的对齐流程是先通过SFT教会模型“做什么”，再通过RLHF或DPO教会它“如何做得更好”。",
-    "incorrect": "想一想学习的顺序。是先学会基础的解题方法，还是先培养解题的“品味”？"
-  }
-}
-</script>
-
 ---
 
 ## 🔭 5. 局限与未来 (What's Next?)

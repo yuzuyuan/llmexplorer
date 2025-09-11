@@ -26,24 +26,6 @@ LLM 的出现，正是为了解决这个核心痛点。它通过一种被称为 
 * **原文概念**：Tokens 是亚词单元（例如，Byte-Pair Encoding）。模型在 Token 上操作，而不是原始字符或单词。
 * **绝佳类比**：这个过程就像厨师做菜前的备菜环节。他不会把一整头牛直接下锅，而是会把它分解成牛腩、里脊等更小的、便于烹饪的肉块。Tokenization 就是把“句子”这道大菜，切分成模型可以处理的“词块”。
 
-<div class="quiz-container" data-quiz-id="quiz1"></div>
-<script type="application/json" id="quiz1-data">
-{
-  "question": "LLM 处理文本的第一步是什么，它的主要作用是什么？",
-  "options": [
-    "Embedding：将文字转换为带有语义的向量。",
-    "Tokenization：将句子切分成模型能理解的最小单元。",
-    "Attention：计算句子中不同词之间的关联强度。",
-    "Prediction：预测句子的下一个词。"
-  ],
-  "correctAnswerIndex": 1,
-  "feedback": {
-    "correct": "完全正确！Tokenization 是所有后续处理的基础，就像准备食材一样重要。",
-    "incorrect": "再想想看。在模型理解语义之前，它需要先能“阅读”文本。第一步是关于如何“阅读”的。"
-  }
-}
-</script>
-
 #### 步骤 2️⃣：风味编码 (Embeddings)
 
 切好的“词块”还只是原材料，没有“味道”。接下来，模型需要通过 **Embedding（词嵌入）** 将每个 Token 转换成一个包含丰富语义信息的数学向量。
@@ -57,24 +39,6 @@ LLM 的出现，正是为了解决这个核心痛点。它通过一种被称为 
 
 * **原文概念**：每个 Token“关注”其他 Token，以建立上下文相关的表示。Q/K/V（查询/键/值）是其核心组件，通过查询与键的匹配度来为值赋予权重。
 * **绝佳类比**：想象一场高端的社交晚宴。句子里的每个 Token 都像一位来宾。自注意力机制允许每位来宾（比如 Token "it"）环顾全场，并判断哪些来宾（比如 "the robot"）对理解自己最重要，然后重点与他们“交流”（赋予更高的注意力权重），从而更深刻地融入整个语境。多个**注意力头 (Multi-head Attention)** 则像是开了多场不同主题的平行派对，让 Token 们从不同角度（语法、语义等）建立联系。
-
-<div class="quiz-container" data-quiz-id="quiz2"></div>
-<script type="application/json" id="quiz2-data">
-{
-  "question": "自注意力机制（Self-Attention）的核心作用是什么？",
-  "options": [
-    "为每个词在句子中的位置进行编码。",
-    "将词转换为高维向量。",
-    "让模型在处理一个词时，能动态地评估句子中其他所有词与它的关系。",
-    "根据概率分布选择下一个最可能的词。"
-  ],
-  "correctAnswerIndex": 2,
-  "feedback": {
-    "correct": "非常棒！自注意力机制是Transformer架构的灵魂，它使得模型能够真正理解上下文。",
-    "incorrect": "这个选项描述的是其他组件的功能。自注意力机制的核心是“关联”，思考一下它是如何建立词与词之间的联系的。"
-  }
-}
-</script>
 
 #### 步骤 4️⃣：层层精炼 (Transformer Blocks)
 
@@ -126,23 +90,7 @@ LLM 生成文本是一个字一个字（或一个 Token 一个 Token）向外“
 * **Top-k**：只在概率最高的 k 个 Token 中进行采样。这可以过滤掉那些非常不靠谱的选项。
 * **Top-p (Nucleus)**：从概率最高的 Token 开始，累加它们的概率，直到总和超过一个阈值 p。然后在这些 Token 中进行采样。这比 Top-k 更灵活，当模型非常有把握时，候选集会很小；当模型不确定时，候选集会变大。
 
-<div class="quiz-container" data-quiz-id="quiz3"></div>
-<script type="application/json" id="quiz3-data">
-{
-  "question": "在创意写作任务中，为了让模型生成更多样、更有趣的内容，应该如何调整 Temperature 参数？",
-  "options": [
-    "调高 Temperature (例如 0.8)",
-    "调低 Temperature (例如 0.2)",
-    "Temperature 对创造性没有影响",
-    "使用 Top-k 采样代替"
-  ],
-  "correctAnswerIndex": 0,
-  "feedback": {
-    "correct": "完全正确！较高的 Temperature 会增加选择低概率词元的机会，从而激发模型的创造力。",
-    "incorrect": "不对哦。Temperature 是控制模型输出随机性的关键参数。思考一下，是让模型更“循规蹈矩”还是更“天马行空”能产生创意内容？"
-  }
-}
-</script>
+[[QUIZ:{"question": "在创意写作任务中，为了让模型生成更多样、更有趣的内容，应该如何调整 Temperature 参数？", "options": ["调高 Temperature (例如 0.8)", "调低 Temperature (例如 0.2)", "Temperature 对创造性没有影响", "使用 Top-k 采样代替"], "answer": "调高 Temperature (例如 0.8)"}]]
 
 ## 🔭 五、硬币的两面：局限与未来 (What's Next?)
 
@@ -159,7 +107,7 @@ LLM 生成文本是一个字一个字（或一个 Token 一个 Token）向外“
     2.  **效率与规模化**：**混合专家模型 (Mixture-of-Experts, MoE)** 等技术，旨在用更低的计算成本训练出更大、更强的模型。
     3.  **多模态融合**：未来的模型将不再局限于文本，而是能够无缝地理解和生成文本、图像、音频、视频的统一大模型。
 
-## 📝 七、实践者备忘录 (Practical Tips)
+## 📝 六、实践者备忘录 (Practical Tips)
 
 最后，为正在或即将在生产环境中使用 LLM 的你，提供一些实用的建议：
 

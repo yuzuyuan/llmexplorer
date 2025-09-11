@@ -1,27 +1,19 @@
 <template>
-  <div class="card my-4 shadow-sm quiz-card">
-    <div class="card-header bg-light">
-      <h5 class="card-title mb-0">📝 随堂测验</h5>
+  <div class="quiz-container">
+    <p class="quiz-question fw-bold">{{ question }}</p>
+    <div class="quiz-options">
+      <button
+        v-for="(option, index) in options"
+        :key="index"
+        @click="selectAnswer(option)"
+        :class="['btn', 'quiz-option-btn', getButtonClass(option)]"
+        :disabled="isAnswered"
+      >
+        {{ option }}
+      </button>
     </div>
-    <div class="card-body">
-      <p class="card-text fw-bold">{{ quizData.question }}</p>
-      <div class="list-group">
-        <button
-          v-for="(option, index) in quizData.options"
-          :key="index"
-          type="button"
-          class="list-group-item list-group-item-action"
-          @click="selectAnswer(index)"
-          :disabled="answered"
-          :class="getOptionClass(index)"
-        >
-          {{ option }}
-        </button>
-      </div>
-      <div v-if="answered" class="mt-3 alert" :class="isCorrect ? 'alert-success' : 'alert-danger'">
-        <strong>{{ isCorrect ? '回答正确！' : '再想想看！' }}</strong>
-        <p class="mb-0">{{ quizData.feedback[isCorrect ? 'correct' : 'incorrect'] }}</p>
-      </div>
+    <div v-if="isAnswered" class="quiz-feedback mt-3 p-3 rounded" :class="feedbackClass">
+      {{ feedbackMessage }}
     </div>
   </div>
 </template>
@@ -29,39 +21,101 @@
 <script setup>
 import { ref, computed } from 'vue';
 
+// 必须先用 defineEmits 声明组件要发出的所有事件
+const emit = defineEmits(['answeredCorrectly']);
+
+// 定义从父组件接收的必需属性
 const props = defineProps({
-  quizData: {
-    type: Object,
+  question: {
+    type: String,
     required: true,
   },
+  options: {
+    type: Array,
+    required: true,
+  },
+  answer: {
+    type: String,
+    required: true,
+  }
 });
 
-const selectedIndex = ref(null);
-const answered = ref(false);
+const selectedAnswer = ref(null);
+const isAnswered = ref(false);
 
-const isCorrect = computed(() => {
-  return selectedIndex.value === props.quizData.correctAnswerIndex;
-});
+const selectAnswer = (option) => {
+  if (!isAnswered.value) {
+    selectedAnswer.value = option;
+    isAnswered.value = true;
 
-const selectAnswer = (index) => {
-  if (answered.value) return;
-  selectedIndex.value = index;
-  answered.value = true;
+    // 如果答案正确，就使用 emit 函数发出 'answeredCorrectly' 事件
+    if (isCorrect.value) {
+      emit('answeredCorrectly');
+    }
+  }
 };
 
-const getOptionClass = (index) => {
-  if (!answered.value) return '';
-  if (index === props.quizData.correctAnswerIndex) return 'list-group-item-success';
-  if (index === selectedIndex.value) return 'list-group-item-danger';
-  return '';
+const isCorrect = computed(() => {
+  return selectedAnswer.value === props.answer;
+});
+
+const feedbackMessage = computed(() => {
+  if (!isAnswered.value) return '';
+  return isCorrect.value ? '✅ 回答正确！' : `❌ 正确答案是: ${props.answer}`;
+});
+
+const feedbackClass = computed(() => {
+  return isCorrect.value ? 'feedback-correct' : 'feedback-incorrect';
+});
+
+const getButtonClass = (option) => {
+  if (!isAnswered.value) {
+    return 'btn-outline-primary';
+  }
+  if (option === props.answer) {
+    return 'btn-success'; // 正确答案按钮
+  }
+  if (option === selectedAnswer.value) {
+    return 'btn-danger'; // 用户选择的错误答案按钮
+  }
+  return 'btn-outline-secondary'; // 其他未选中的错误选项
 };
 </script>
 
 <style scoped>
-.quiz-card {
-  border-left: 5px solid #0d6efd;
-}
-.list-group-item-action:hover {
+.quiz-container {
   background-color: #f8f9fa;
+  border-left: 5px solid #0d6efd;
+  padding: 1.5rem;
+}
+
+.quiz-question {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.quiz-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quiz-option-btn {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.feedback-correct {
+  background-color: #d1e7dd;
+  color: #0f5132;
+  border: 1px solid #badbcc;
+}
+
+.feedback-incorrect {
+  background-color: #f8d7da;
+  color: #842029;
+  border: 1px solid #f5c2c7;
 }
 </style>
