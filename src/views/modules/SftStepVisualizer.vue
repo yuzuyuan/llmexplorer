@@ -1,79 +1,32 @@
 <template>
   <div class="card shadow-sm mt-5">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-      <h4 class="mb-0">2. 单步训练可视化 (随堂测验)</h4>
+    <div class="card-header bg-light">
+      <h4 class="mb-0">2. 单步训练可视化 (最终版)</h4>
     </div>
     <div class="card-body p-4">
-      <div class="row align-items-center mb-4">
-        <div class="col-md-3"><strong>选择学生 (模型):</strong></div>
-        <div class="col-md-9">
-          <select class="form-select" v-model="selectedModel">
-            <option value="base">基础模型 (Base Model)</option>
-            <option value="checkpoint-20">微调中 (checkpoint-20)</option>
-            <option value="checkpoint-40">微调中 (checkpoint-40)</option>
-            <option value="checkpoint-60">微调中 (checkpoint-60)</option>
-            <option value="checkpoint-80">微调中 (checkpoint-80)</option>
-            <option value="checkpoint-100">微调后模型 (checkpoint-100)</option>
-          </select>
-        </div>
+      <div class="p-3 border rounded bg-light mb-4">
+        <p class="mb-1"><strong>指令:</strong> {{ example.instruction }}</p>
       </div>
 
-      <div v-if="datasetItem">
-        <p><strong>考题:</strong></p>
-        <div class="p-3 border rounded bg-light mb-3">
-          <p class="mb-1"><strong>指令:</strong> {{ datasetItem.instruction }}</p>
-          <p class="mb-0"><strong>输入:</strong> {{ datasetItem.input || '(无)' }}</p>
-        </div>
-        <p><strong>正确回答 (已过滤符号):</strong> (将鼠标悬浮在每个文字Token上进行考察)</p>
-        <div v-if="targetTokens.length > 0" class="p-3 border rounded bg-light fs-5 token-container">
-          <span
-            v-for="(token, index) in targetTokens"
-            :key="index"
-            class="interactive-token"
-            @mouseenter="inspectToken(index)"
-          >
-            {{ token.text }}
-          </span>
-        </div>
-        <div v-else class="alert alert-warning mt-2">
-          此条数据的“正确回答”中没有可供考察的文字Token。
-        </div>
+      <div class="p-3 border rounded bg-white mb-4 text-center">
+        <h5 class="text-muted mb-3">训练快照：预测关键Token</h5>
+        <p class="fs-4">
+          <span class="text-muted">{{ example.context }}</span>
+          <span class="bg-warning px-2 rounded fw-bold">{{ example.target }}</span>
+        </p>
+        <small class="text-muted">模型需要根据灰色上下文，预测出黄色高亮的“<strong class="text-dark">{{ example.target }}</strong>”这个Token。</small>
       </div>
 
-      <div v-if="inspectionResult" class="mt-4 p-3 border rounded bg-white">
-        <h5>测验结果 (针对 Token: <span class="text-primary fw-bold">{{ inspectionResult.targetToken }}</span>)</h5>
-        <div class="row">
-          <div class="col-md-4 d-flex flex-column justify-content-center align-items-center text-center">
-            <h6 class="text-muted">模型 Loss (差距)</h6>
-            <div :class="lossClass" class="loss-display">
-              {{ inspectionResult.loss.toFixed(2) }}
-            </div>
-            <p class="small text-muted mt-2">{{ lossDescription }}</p>
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <div class="mb-3">
+            <label for="modelSelector" class="form-label"><strong>选择要考察的模型:</strong></label>
+            <select id="modelSelector" class="form-select" v-model="selectedModelId" @change="fetchResults">
+              <option value="base">基础模型 (Base Model)</option>
+              <option value="checkpoint-100">微调后模型 (checkpoint-100)</option>
+            </select>
           </div>
-          <div class="col-md-8">
-            <h6 class="text-muted">模型 Top 5 预测</h6>
-            <div v-if="loadingInspection" class="text-center">
-              <span class="spinner-border spinner-border-sm"></span>
-            </div>
-            <div v-else class="d-flex flex-column gap-2">
-              <div v-for="p in inspectionResult.predictions" :key="p.token" class="row g-2 align-items-center">
-                <div class="col-3 text-end">
-                  <span
-                    class="fw-bold"
-                    :class="{ 'text-success': p.isCorrect, 'text-danger': !p.isCorrect }"
-                  >
-                    {{ p.token }}
-                    <i v-if="p.isCorrect" class="bi bi-check-circle-fill"></i>
-                  </span>
-                </div>
-                <div class="col-9">
-                  <div class="progress" style="height: 24px;">
-                    <div class="progress-bar" :style="{ width: p.probability + '%' }">{{ p.probability }}%</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ResultCard :title="selectedModelTitle" :result="currentResult" :loading="isLoading" />
         </div>
       </div>
     </div>
@@ -81,169 +34,91 @@
 </template>
 
 <script setup>
-import { ref, watch, defineProps, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import ResultCard from './ResultCard.vue';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
-const props = defineProps({
-  datasetItem: Object,
+// 写死的示例数据
+const example = {
+  instruction: "宝宝，你在岩浆里憋气最长时间是多少?",
+  context: "*耳朵惊恐地竖起来，尾巴也炸成了蒲公E* 岩...岩浆？！主人怎么会让宝宝去那种可怕的地方！*瑟瑟发抖地躲在主人身后* 我连温水都不敢跳进去呢...更别说岩浆了！要是跳进去的话，我的毛毛肯定会被烤焦的...小声嘀咕 不过...不过有一次我梦见自己变成了喷火",
+  target: "猫娘"
+};
+
+const isLoading = ref(true);
+const selectedModelId = ref('base'); // 默认选择基础模型
+const currentResult = ref(null);
+
+const selectedModelTitle = computed(() => {
+  return selectedModelId.value === 'base' ? '基础模型 (Base Model)' : '微调后模型 (checkpoint-100)';
 });
 
-const selectedModel = ref('base');
-const originalTokens = ref([]);
-const targetTokens = ref([]);
-const inspectionResult = ref(null);
-const loadingInspection = ref(false);
-
-let tokenizerCache = {};
-
-// **核心修改：调用新的、专用的API端点**
-const tokenizeText = async (text) => {
-  const cacheKey = `visualizer_${text}`;
-  if (tokenizerCache[cacheKey]) return tokenizerCache[cacheKey];
+// --- 核心API请求函数 ---
+const fetchPredictionForModel = async (modelId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/sft/visualizer_tokenize`, {
+    // 1. 将目标Token文本转换为ID
+    const tokenizeResponse = await fetch(`${API_BASE_URL}/api/tokenize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: example.target }),
     });
-    if (!response.ok) return [];
-    const data = await response.json();
-    const result = data.tokens.map((token, index) => ({ text: token, id: data.token_ids[index] }));
-    tokenizerCache[cacheKey] = result;
-    return result;
-  } catch (error) {
-    console.error("Visualizer Tokenization failed:", error);
-    return [];
-  }
-};
+    if (!tokenizeResponse.ok) throw new Error("Tokenize API failed");
+    const tokenData = await tokenizeResponse.json();
+    const targetTokenId = tokenData.token_ids[0];
+    if (targetTokenId === undefined) throw new Error("Could not get target token ID.");
 
-watch(() => props.datasetItem, async (newItem) => {
-  if (newItem && newItem.output) {
-    inspectionResult.value = null;
-    originalTokens.value = await tokenizeText(newItem.output);
+    // 2. 构建Prompt
+    let fullPrompt = `指令: ${example.instruction}\n输出: ${example.context}`;
 
-    // 过滤掉符号，只保留文字和数字用于显示
-    const regex = /^[\p{L}\p{N}]+$/u;
-    targetTokens.value = originalTokens.value
-      .map((token, originalIndex) => ({ ...token, originalIndex }))
-      .filter(token => {
-        const cleanedText = token.text.replace(/ /g, '').trim(); //  处理Qwen tokenizer可能产生的前缀' '
-        return regex.test(cleanedText);
-      });
-  }
-}, { immediate: true });
+    // 3. 并发获取Loss和预测
+    const [lossRes, predRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/calculate_loss`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_id: modelId, context: fullPrompt, target_token_id: targetTokenId }),
+      }),
+      fetch(`${API_BASE_URL}/api/predict_next`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullPrompt, model_id: modelId }),
+      })
+    ]);
 
-let debounceTimer;
-const inspectToken = (filteredIndex) => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(async () => {
-    if (!props.datasetItem) return;
+    if (!lossRes.ok || !predRes.ok) throw new Error(`API calls failed for model ${modelId}`);
 
-    const currentToken = targetTokens.value[filteredIndex];
-    const originalIndex = currentToken.originalIndex;
+    const lossData = await lossRes.json();
+    const predData = await predRes.json();
 
-    loadingInspection.value = true;
-    inspectionResult.value = null;
-
-    const fullPrompt = `指令: ${props.datasetItem.instruction}\n输入: ${props.datasetItem.input || ''}\n输出: `;
-    const contextTokens = originalTokens.value.slice(0, originalIndex).map(t => t.text);
-    const context = fullPrompt + contextTokens.join('');
-    const targetToken = originalTokens.value[originalIndex];
-
-    try {
-      const [lossRes, predRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/calculate_loss`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model_id: selectedModel.value,
-            context: context,
-            target_token_id: targetToken.id,
-          }),
-        }),
-        fetch(`${API_BASE_URL}/api/predict_next`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: context,
-            model_id: selectedModel.value
-          }),
-        })
-      ]);
-
-      if (!lossRes.ok || !predRes.ok) throw new Error("API request failed");
-
-      const lossData = await lossRes.json();
-      const predData = await predRes.json();
-
-      inspectionResult.value = {
-        loss: lossData.loss,
-        targetToken: targetToken.text,
-        predictions: predData.predictions.map(p => ({
-          ...p,
-          isCorrect: p.token.trim() === targetToken.text.trim()
-        }))
-      };
-
-    } catch (error) {
-      console.error("Inspection failed:", error);
-    } finally {
-      loadingInspection.value = false;
+    // 4. 检查返回的数据是否完整
+    if (predData.predictions === undefined) {
+      console.error("Prediction API response is missing 'predictions' key for model:", modelId, predData);
+      throw new Error(`Invalid prediction response for model ${modelId}`);
     }
-  }, 300);
+
+    return {
+      loss: lossData.loss,
+      predictions: predData.predictions.map(p => ({
+        ...p,
+        isCorrect: p.token.trim() === example.target.trim()
+      }))
+    };
+  } catch (error) {
+    console.error(`Failed to fetch prediction for ${modelId}:`, error);
+    return { loss: 0, predictions: [] }; // 返回一个空的默认值，防止页面崩溃
+  }
 };
 
-const lossClass = computed(() => {
-  if (!inspectionResult.value) return '';
-  const loss = inspectionResult.value.loss;
-  if (loss > 5) return 'loss-high';
-  if (loss > 2) return 'loss-medium';
-  return 'loss-low';
-});
+// --- 控制器 ---
+const fetchResults = async () => {
+  isLoading.value = true;
+  currentResult.value = null;
+  const result = await fetchPredictionForModel(selectedModelId.value);
+  currentResult.value = result;
+  isLoading.value = false;
+};
 
-const lossDescription = computed(() => {
-  if (!inspectionResult.value) return '';
-  const loss = inspectionResult.value.loss;
-  if (loss > 5) return '差距巨大，模型完全预测错了。';
-  if (loss > 2) return '有一定差距，模型感到困惑。';
-  return '差距很小，模型预测得很好！';
-});
+// --- 页面加载后，自动加载默认模型的结果 ---
+onMounted(fetchResults);
 
 </script>
-
-<style scoped>
-.token-container {
-  line-height: 2.5;
-}
-.interactive-token {
-  padding: 4px 8px;
-  margin: 3px;
-  border-radius: 5px;
-  cursor: pointer;
-  display: inline-block;
-  border: 1px solid #e0e0e0;
-  transition: background-color 0.2s;
-}
-.interactive-token:hover {
-  background-color: #e9ecef;
-}
-.loss-display {
-  font-size: 2.5rem;
-  font-weight: bold;
-  padding: 1rem;
-  border-radius: 50%;
-  width: 100px;
-  height: 100px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.3s;
-}
-.loss-high { color: #dc3545; border: 4px solid #dc3545; }
-.loss-medium { color: #ffc107; border: 4px solid #ffc107; }
-.loss-low { color: #198754; border: 4px solid #198754; }
-.progress-bar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-</style>

@@ -69,15 +69,12 @@ const { htmlContent, toc } = useMarkdown('4-sft');
 const { unlockAchievement, trackInteraction } = useAchievements();
 const pageContainerRef = ref(null);
 
-const dataset = ref([
-  {
-    "input": "在你的印象里，人是什么样的",
-    "output": "*歪着头思考了一会*..."
-  }
-]);
-const selectedItem = ref(dataset.value[0]);
+// --- 核心修复 ---
+// 彻底移除所有写死的数据，将 selectedItem 初始化为 null
+// 它将会等待 DatasetExplorer 加载完毕后发出的第一个数据
+const selectedItem = ref(null);
 
-// --- Achievement Tracking ---
+// --- Achievement Tracking (无需改动) ---
 const achievementId = 'read_sft';
 const interactionAchievementId = 'interact_sft';
 const requiredInteractions = ['dataset-nav', 'model-select', 'chat-send', 'start-simulation'];
@@ -100,7 +97,8 @@ const handleInteraction = (interactionId) => {
   }
 };
 
-// --- Guidance ---
+
+// --- Guidance (无需改动) ---
 const guidance = reactive({
   visible: false, step: 0, title: '', content: '', buttonText: '',
 });
@@ -143,7 +141,6 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
 });
 </script>
-
 <style scoped>
 .page-header-actions {
   text-align: right;

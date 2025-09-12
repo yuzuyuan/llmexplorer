@@ -1,4 +1,3 @@
-
 ---
 title: "Prompt Engineering: Patterns and Guardrails"
 date: 2025-09-02
