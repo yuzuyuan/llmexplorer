@@ -19,6 +19,7 @@ base_model_cache = {}
 lora_model_cache = {}
 tokenizer_cache = None
 current_peft_model = None
+
 # --- 独立的 PyTorch 注意力模块 ---
 class StandaloneAttention(nn.Module):
     def __init__(self, hidden_dim):
@@ -56,15 +57,49 @@ def get_base_model():
     return base_model_cache["base"]
 
 def get_model_for_sft_inference(model_id: str = "base"):
-    if model_id == "base": return get_base_model()
-    if model_id in lora_model_cache: return lora_model_cache[model_id]
+    """
+    Gets the appropriate model for SFT inference.
+    Handles loading LoRA adapters and unloading them to restore the base model.
+    """
+    global current_peft_model
+
+    # --- Case 1: The user requests the base model ---
+    if model_id == "base":
+        # Check if a LoRA model is currently active
+        if current_peft_model is not None:
+            print("Unloading previous LoRA model to restore base model...")
+            # .unload() detaches the adapter and returns the clean base model
+            clean_base_model = current_peft_model.unload()
+            
+            # CRITICAL STEP: Update the cache with the clean, restored model
+            base_model_cache["base"] = clean_base_model
+            
+            # Reset the tracker
+            current_peft_model = None
+            print("Base model restored successfully.")
+        
+        # Return the pure base model (either freshly loaded or just restored)
+        return get_base_model()
+
+    # --- Case 2: The user requests a fine-tuned checkpoint ---
     lora_path = os.path.join(CHECKPOINT_BASE_PATH, model_id)
     if os.path.isdir(lora_path):
-        base_model = get_base_model()
+        # First, ensure we start from a clean base model by calling this function recursively
+        base_model = get_model_for_sft_inference("base") 
+        
+        print(f"Loading LoRA adapter from: {lora_path}")
+        # PeftModel.from_pretrained attaches the adapter to the base model
         lora_model = PeftModel.from_pretrained(base_model, lora_path)
         lora_model.config.output_hidden_states = True
-        lora_model_cache[model_id] = lora_model
+        
+        # Keep track of the newly created LoRA model
+        current_peft_model = lora_model
+        
+        # We no longer need lora_model_cache, as we rebuild the model each time
+        # to ensure the base model is always clean before applying a new adapter.
         return lora_model
+
+    # --- Fallback: If checkpoint not found, return the base model ---
     return get_base_model()
 
 def clean_token_for_display(token):
@@ -164,7 +199,34 @@ class SftModelServer:
             loss = self.loss_fn(logits, target)
             
             return {"loss": round(loss.item(), 4)} # 返回一个保留4位小数的浮点数
-
+    def predict_next(self, text, model_id, top_k=5):
+        """
+        根据给定的文本和模型ID，预测下一个最可能的Token。
+        """
+        # 核心：使用与 calculate_loss 相同的函数来获取正确的模型
+        model = get_model_for_sft_inference(model_id)
+        
+        with torch.no_grad():
+            inputs = self.tokenizer(text, return_tensors="pt").to(model.device)
+            outputs = model(**inputs)
+            
+            # 获取最后一个Token的Logits
+            next_token_logits = outputs.logits[:, -1, :]
+            
+            # 使用top_k获取概率最高的Token
+            top_k = torch.topk(next_token_logits, k=top_k)
+            top_k_ids = top_k.indices.squeeze().tolist()
+            
+            # 解码Token并返回结果
+            top_k_tokens = [self.tokenizer.decode([idx], skip_special_tokens=True) for idx in top_k_ids]
+            probabilities = torch.nn.functional.softmax(top_k.values, dim=-1).squeeze().cpu().tolist()
+            
+            response = []
+            for token, prob in zip(top_k_tokens, probabilities):
+                if token:
+                    response.append({"token": token, "probability": round(prob * 100, 2)})
+            
+            return {"predictions": response}
 # --- 实例化服务 ---
 sft_model_provider = get_model_for_sft_inference
 llm_basics_server = LlmBasicsModelServer()

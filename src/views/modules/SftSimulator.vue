@@ -145,7 +145,7 @@ const startSimulation = () => {
   if (isPlaying.value || !chartInstance) return;
   isPlaying.value = true;
   simulationDone.value = false;
-  
+
   let logIndex = 0;
   const displayedData = [];
   chartInstance.setOption({ series: [{ data: [] }] });
@@ -161,7 +161,7 @@ const startSimulation = () => {
     currentStep.value = log.step;
     currentLoss.value = log.loss;
     currentLR.value = log.learning_rate;
-    
+
     displayedData.push([log.step, log.loss]);
 
     chartInstance.setOption({
@@ -169,7 +169,7 @@ const startSimulation = () => {
             data: displayedData
         }]
     });
-    
+
     logIndex++;
   }, 50);
 };
@@ -178,9 +178,9 @@ const startSimulation = () => {
 const handleChatSend = async (message) => {
   chatMessages.value.push({ from: 'user', text: message });
   isChatting.value = true;
-  
+
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/sft_generate', { 
+    const response = await fetch('http://127.0.0.1:8000/api/sft_generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

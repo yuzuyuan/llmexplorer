@@ -39,7 +39,7 @@
             <p class="lead text-muted">深入训练的每一步，亲眼见证模型如何通过“批改作业”来学习。</p>
           </div>
           <DatasetExplorer id="dataset-explorer" @item-selected="selectedItem = $event" @interaction="handleInteraction('dataset-nav')" />
-          <SftStepVisualizer id="sft-step-visualizer" :dataset-item="selectedItem" @interaction="handleInteraction('model-select')" />
+          <SftStepVisualizer id="sft-step-visualizer" />
         </div>
 
         <div class="mt-5" id="sft-simulator">

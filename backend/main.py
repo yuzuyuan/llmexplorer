@@ -61,6 +61,9 @@ class AttentionRequest(BaseModel):
 
 class PredictRequest(BaseModel):
     text: str
+class SftPredictRequest(BaseModel):
+    text: str
+    model_id: str
     
 class SftRequest(BaseModel):
     model_id: str
@@ -89,6 +92,17 @@ def read_root():
     return {"message": "LLM Explorer Backend is running"}
 
 # --- SFT 页面相关API (从原始 main.py 中恢复) ---
+@app.post("/api/sft/predict_for_visualizer")
+async def sft_predict_for_visualizer(request: SftPredictRequest):
+    """
+    专门为SFT可视化器提供支持的预测接口。
+    """
+    try:
+        # 调用我们刚刚在 SftModelServer 中创建的新方法
+        return sft_server.predict_next(request.text, request.model_id)
+    except Exception as e:
+        logger.error(f"SFT Visualizer prediction failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 @app.post("/api/sft/visualizer_tokenize")
 async def visualizer_tokenize(request: TokenizeRequest):
     """
