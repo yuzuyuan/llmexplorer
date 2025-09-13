@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import transformer_trainer as tt
+from transformer_trainer import start_training_process
 from rag_pipeline import  rerank_only,retrieve_only
 # --- 核心修改：导入新的、分离的服务实例和函数 ---
 from model_server import get_tokenizer,llm_basics_server, sft_model_provider,sft_server
@@ -70,6 +71,14 @@ class LossCalculationRequest(BaseModel):
     target_token_id: int
 class PromptEngRequest(BaseModel):
     prompt: str
+class TrainingConfig(BaseModel):
+    num_encoder_layers: int
+    num_decoder_layers: int
+    heads: int
+    ff_dim: int
+    embed_dim: int
+    epochs: int = 5
+    batch_size: int = 32
 # --- API 路由定义 ---
 
 @app.get("/")
@@ -231,7 +240,7 @@ async def train_transformer_model(request: TrainRequest):
 
         # 2. 设定数据集的准确路径
         # 该路径相对于项目根目录（即 start_server.bat 所在的位置）
-        data_path = os.path.join("DataTransformer", "Transformer", "data")
+        data_path = os.path.join("..","DataTransformer", "Transformer", "data")
         
         if not os.path.exists(os.path.join(data_path, 'train.cn')):
              return {"status": "error", "logs": [f"错误：在路径 '{data_path}' 下找不到 train.cn 文件。", "请确认已将 cn.txt 和 en.txt 分别重命名为 train.cn 和 train.en。"]}
@@ -244,6 +253,7 @@ async def train_transformer_model(request: TrainRequest):
     except Exception as e:
         logger.error(f"An error occurred during transformer training: {e}", exc_info=True)
         return {"status": "error", "logs": [f"API层出现严重错误: {e}", "请检查后端控制台以获取详细的追溯信息。"]}
+
 @app.post("/api/rag/retrieve")
 async def handle_rag_retrieve(request: RagQueryRequest):
     """

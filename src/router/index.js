@@ -5,6 +5,7 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Account from '../views/Account.vue'
 import QuizPage from '../views/pages/QuizPage.vue'
+import Auth from '../views/Auth.vue'
 // 成员个人页面组件
 const YuZuyuanPage = () => import('../views/members/yuzuyuanpage.vue')
 const SongChunchengPage = () => import('../views/members/sok_chhhunheangpage.vue')
@@ -25,6 +26,7 @@ const routes = [
   { path: '/account', component: Account, meta: { requiresAuth: true } },
   { path: '/register', component: Register },
   { path: '/account', component: Account },
+  { path: '/auth', component: Auth },
   { path: '/articles', component: ArticlesPage },
    { path: '/quiz', component: QuizPage },
     // 更新知识库路由指向新的独立页面
