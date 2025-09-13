@@ -1,35 +1,69 @@
 <template>
   <div class="transformer-builder">
     <div class="controls card shadow-sm mb-3">
-      <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
-        <h5 class="mb-2 mb-md-0 me-md-3">控制与配置</h5>
-        <div class="d-flex flex-wrap">
-          <button @click="loadClassicModel" class="btn btn-success me-2 mb-2 mb-md-0">
-            <i class="bi bi-gear-wide-connected"></i> 一键配置优秀网络
-          </button>
-          <button @click="startTraining" class="btn btn-primary mb-2 mb-md-0" :disabled="components.length === 0 || trainingState.isTraining">
-            <i class="bi bi-play-fill"></i> 开始训练
-          </button>
-           <button @click="clearCanvas" class="btn btn-warning ms-2 mb-2 mb-md-0" :disabled="components.length === 0">
-            <i class="bi bi-x-lg"></i> 清空画布
-          </button>
+      <div class="card-body">
+        <h5 class="card-title mb-3">控制与配置</h5>
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+
+          <div class="d-flex flex-wrap align-items-center me-md-3 mb-2 mb-md-0">
+            <div class="me-3">
+              <label for="epochs" class="form-label me-2">Epochs:</label>
+              <input type="number" id="epochs" class="form-control form-control-sm" style="width: 80px;" v-model.number="trainingParams.epochs" min="1" max="50">
+            </div>
+            <div>
+              <label for="learningRate" class="form-label me-2">学习率:</label>
+              <input type="number" id="learningRate" class="form-control form-control-sm" style="width: 120px;" v-model.number="trainingParams.learningRate" min="0.00001" max="0.01" step="0.00001">
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap">
+            <button @click="loadClassicModel" class="btn btn-success me-2 mb-2 mb-md-0">
+              <i class="bi bi-gear-wide-connected"></i> 一键配置
+            </button>
+            <button @click="startTraining" class="btn btn-primary me-2 mb-2 mb-md-0" :disabled="components.length === 0 || trainingState.isTraining">
+              <i class="bi bi-play-fill"></i> 开始训练
+            </button>
+            <button @click="clearCanvas" class="btn btn-warning mb-2 mb-md-0" :disabled="components.length === 0">
+              <i class="bi bi-x-lg"></i> 清空画布
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div v-if="trainingState.isTraining || trainingState.logs.length > 0" class="training-log card shadow-sm mb-3">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-          <i class="bi bi-terminal"></i> 训练日志
-        </h5>
-        <div v-if="trainingState.isTraining" class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
-      <div class="card-body bg-dark text-white font-monospace">
-        <pre v-for="(log, index) in trainingState.logs" :key="index">{{ log }}</pre>
-      </div>
+    <div v-if="showInstructions" class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+      <h5 class="alert-heading"><i class="bi bi-info-circle-fill"></i> 搭建提示</h5>
+      <p class="mb-1">
+        一个经典的翻译模型通常遵循以下顺序：
+      </p>
+      <ol class="mb-2" style="padding-left: 1.5rem;">
+        <li><b>编码器部分</b>: <code>源语言输入</code> → <code>嵌入层</code> → <code>位置编码</code> → <code>编码器块</code> (可堆叠多个)。</li>
+        <li><b>解码器部分</b>: <code>目标语言输入</code> → <code>嵌入层</code> → <code>位置编码</code> → <code>解码器块</code> (可堆叠多个)。</li>
+        <li><b>连接</b>: 将最后的 <code>编码器块</code> 连接到每一个 <code>解码器块</code> (形成交叉注意力)。</li>
+        <li><b>输出</b>: 将最后的 <code>解码器块</code> 连接到 <code>输出层</code>。</li>
+      </ol>
+      <small>您也可以点击“一键配置优秀网络”快速加载示例。</small>
+      <button type="button" class="btn-close" @click="showInstructions = false" aria-label="Close"></button>
     </div>
+
+    <div v-if="trainingState.isTraining || trainingState.logs.length > 0" class="training-dashboard">
+        <TrainingLogChart v-if="trainingMetrics.epochs.length > 0" :chart-data="trainingMetrics" class="mb-3" />
+
+        <div class="training-log card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                <i class="bi bi-terminal"></i> 训练日志
+                </h5>
+                <div v-if="trainingState.isTraining" class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <div class="card-body bg-dark text-white font-monospace">
+                <pre v-for="(log, index) in trainingState.logs" :key="index">{{ log }}</pre>
+            </div>
+        </div>
+    </div>
+
 
     <div class="main-layout">
       <div class="component-library card shadow-sm">
@@ -52,8 +86,12 @@
         class="canvas card shadow-sm"
         id="canvas"
         ref="canvasRef"
+        tabindex="0"
         @dragover.prevent
         @drop="onDrop"
+        @mousemove="onCanvasMouseMove"
+        @mouseup="onCanvasMouseUp"
+        @mouseleave="cancelConnection"
       >
         <div
           v-for="component in components"
@@ -63,9 +101,11 @@
           :style="{ top: component.position.y + 'px', left: component.position.x + 'px', borderColor: getComponentColor(component.type) }"
           @mousedown.left="startDragComponent(component, $event)"
           @click="selectComponent(component)"
+          @mouseup="finishConnecting(component)"
           :class="{ 'selected': selectedComponent && selectedComponent.id === component.id }"
         >
           {{ component.label }}
+          <div class="connection-handle" @mousedown.stop="startConnecting(component, $event)"></div>
         </div>
 
         <svg class="connections-svg">
@@ -78,6 +118,7 @@
             </marker>
           </defs>
           <path v-for="(conn, index) in connections" :key="index" :d="getConnectionPath(conn)" class="connection-path" :class="conn.type || 'normal'" :marker-end="conn.type === 'cross_attention' ? 'url(#arrow-cross)' : 'url(#arrow)'"></path>
+          <path v-if="isConnecting" :d="tempConnectionPath" class="connection-path normal" marker-end="url(#arrow)"></path>
         </svg>
 
       </div>
@@ -109,20 +150,34 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick } from 'vue';
+import { ref, reactive, nextTick, onMounted, onUnmounted } from 'vue';
+import TrainingLogChart from './TrainingLogsChart.vue';
 
 const components = ref([]);
 const connections = ref([]);
 const selectedComponent = ref(null);
 const canvasRef = ref(null);
 
-// 训练状态管理
+const showInstructions = ref(true);
+
+const isConnecting = ref(false);
+const connectionStartComponent = ref(null);
+const tempConnectionPath = ref('');
+
 const trainingState = reactive({
   isTraining: false,
   logs: [],
-  error: null,
 });
 
+const trainingMetrics = ref({
+  epochs: [],
+  loss: [],
+  ppl: []
+});
+const trainingParams = reactive({
+  epochs: 5,
+  learningRate: 0.0001,
+});
 const componentLibrary = reactive([
   { type: 'source_input', name: '源语言输入', color: '#0d6efd' },
   { type: 'target_input', name: '目标语言输入', color: '#8d33d6' },
@@ -138,7 +193,6 @@ const getComponentColor = (type) => {
   return comp ? comp.color : '#6c757d';
 };
 
-// --- Drag and Drop Logic ---
 const onDragStart = (event, type) => {
   event.dataTransfer.setData('componentType', type);
 };
@@ -173,11 +227,13 @@ const getInitialParams = (type) => {
     }
 }
 
-// --- Component Dragging on Canvas ---
 let draggedComponent = null;
 let offset = { x: 0, y: 0 };
 
 const startDragComponent = (component, event) => {
+    if (event.target.classList.contains('connection-handle')) {
+        return;
+    }
     draggedComponent = component;
     const compElement = document.getElementById(component.id);
     const compRect = compElement.getBoundingClientRect();
@@ -186,7 +242,7 @@ const startDragComponent = (component, event) => {
     offset.y = event.clientY - compRect.top;
 
     document.addEventListener('mousemove', onDragComponent);
-    document.addEventListener('mouseup', stopDragComponent);
+    document.addEventListener('mouseup', stopDragComponent, { once: true });
 };
 
 const onDragComponent = (event) => {
@@ -199,10 +255,8 @@ const onDragComponent = (event) => {
 const stopDragComponent = () => {
     draggedComponent = null;
     document.removeEventListener('mousemove', onDragComponent);
-    document.removeEventListener('mouseup', stopDragComponent);
 };
 
-// --- Panel and Selection Logic ---
 const selectComponent = (component) => {
   selectedComponent.value = component;
 };
@@ -220,10 +274,105 @@ const clearCanvas = () => {
   connections.value = [];
   selectedComponent.value = null;
   trainingState.logs = [];
+  trainingMetrics.value = { epochs: [], loss: [], ppl: [] };
 }
 
-// --- Connection Drawing ---
+const handleKeyDown = (event) => {
+  if (selectedComponent.value && (event.key === 'Delete' || event.key === 'Backspace')) {
+    event.preventDefault();
+    deleteComponent(selectedComponent.value.id);
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown);
+});
+
+const connectionRules = [
+    ['source_input', 'embedding'],
+    ['target_input', 'embedding'],
+    ['embedding', 'positional_encoding'],
+    ['positional_encoding', 'encoder_block'],
+    ['positional_encoding', 'decoder_block'],
+    ['encoder_block', 'encoder_block'],
+    ['encoder_block', 'decoder_block'],
+    ['decoder_block', 'decoder_block'],
+    ['decoder_block', 'output_layer'],
+];
+
+const isValidConnection = (fromComponent, toComponent) => {
+    if (!fromComponent || !toComponent || fromComponent.id === toComponent.id) {
+        return false;
+    }
+    const exists = connections.value.some(c => c.from === fromComponent.id && c.to === toComponent.id);
+    if (exists) {
+        alert('错误：这两个组件之间已经存在连接。');
+        return false;
+    }
+
+    return connectionRules.some(rule => rule[0] === fromComponent.type && rule[1] === toComponent.type);
+}
+
+const startConnecting = (component, event) => {
+    isConnecting.value = true;
+    connectionStartComponent.value = component;
+    event.stopPropagation();
+};
+
+const finishConnecting = (targetComponent) => {
+    if (isConnecting.value && connectionStartComponent.value && targetComponent) {
+        if (isValidConnection(connectionStartComponent.value, targetComponent)) {
+            const newConnection = {
+                from: connectionStartComponent.value.id,
+                to: targetComponent.id,
+                type: 'normal'
+            };
+            if (connectionStartComponent.value.type === 'encoder_block' && targetComponent.type === 'decoder_block') {
+                newConnection.type = 'cross_attention';
+            }
+            connections.value.push(newConnection);
+        } else if (connectionStartComponent.value.id !== targetComponent.id) {
+            alert(`无效连接：无法从 '${connectionStartComponent.value.label}' 连接到 '${targetComponent.label}'。`);
+        }
+    }
+    cancelConnection();
+};
+
+const onCanvasMouseMove = (event) => {
+    if (isConnecting.value && connectionStartComponent.value) {
+        const fromEl = document.getElementById(connectionStartComponent.value.id);
+        if (!fromEl || !canvasRef.value) return;
+
+        const canvasRect = canvasRef.value.getBoundingClientRect();
+        const fromRect = fromEl.getBoundingClientRect();
+
+        const startX = fromRect.right - canvasRect.left;
+        const startY = fromRect.top - canvasRect.top + fromRect.height / 2;
+        const endX = event.clientX - canvasRect.left;
+        const endY = event.clientY - canvasRect.top;
+
+        tempConnectionPath.value = `M ${startX},${startY} C ${startX + 50},${startY} ${endX - 50},${endY} ${endX},${endY}`;
+    }
+};
+
+const onCanvasMouseUp = () => {
+    if (isConnecting.value) {
+        cancelConnection();
+    }
+};
+
+const cancelConnection = () => {
+    isConnecting.value = false;
+    connectionStartComponent.value = null;
+    tempConnectionPath.value = '';
+};
+
 const getConnectionPath = (conn) => {
+  if (!canvasRef.value) return '';
   const fromEl = document.getElementById(conn.from);
   const toEl = document.getElementById(conn.to);
   if (!fromEl || !toEl) return '';
@@ -245,7 +394,6 @@ const getConnectionPath = (conn) => {
   return `M ${startX},${startY} C ${controlX1},${controlY1} ${controlX2},${controlY2} ${endX},${endY}`;
 };
 
-// --- Core Functionality ---
 const loadClassicModel = async () => {
   try {
     const response = await fetch('/architectures/classic_translation.json');
@@ -265,33 +413,62 @@ const loadClassicModel = async () => {
 const startTraining = async () => {
   trainingState.isTraining = true;
   trainingState.logs = ["发起训练请求，请稍候..."];
-  trainingState.error = null;
+  trainingMetrics.value = { epochs: [], loss: [], ppl: [] };
 
   try {
     const response = await fetch('/api/transformer/train', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        components: components.value,
-        connections: connections.value,
-      }),
+  components: components.value,
+  connections: connections.value,
+  // MODIFICATION: Send new training params
+  epochs: trainingParams.epochs,
+  learning_rate: trainingParams.learningRate,
+}),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    if (!response.ok || !response.body) {
+        throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const result = await response.json();
-    trainingState.logs = result.logs || ['训练完成，但未收到日志。'];
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
 
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+        try {
+          const data = JSON.parse(line);
+          if (data.type === 'log') {
+            trainingState.logs.push(data.payload);
+          } else if (data.type === 'metric') {
+            // **FIX:** Create a new object to avoid reactivity loop
+            const newMetrics = {
+              epochs: [...trainingMetrics.value.epochs, data.payload.epoch],
+              loss: [...trainingMetrics.value.loss, data.payload.loss],
+              ppl: [...trainingMetrics.value.ppl, data.payload.ppl],
+            };
+            trainingMetrics.value = newMetrics;
+          }
+        } catch (e) {
+          console.error("Error parsing streaming data line:", line, e);
+        }
+      }
+    }
   } catch (error) {
     console.error("训练请求失败:", error);
-    trainingState.error = error.message;
     trainingState.logs.push(`错误: ${error.message}`);
-    trainingState.logs.push("请检查后端服务是否已启动，以及数据集路径是否正确。");
+    trainingState.logs.push("请检查后端服务是否已启动，以及网络连接是否正常。");
   } finally {
     trainingState.isTraining = false;
   }
@@ -307,24 +484,22 @@ const startTraining = async () => {
 }
 .main-layout {
   display: grid;
-  /* 定义3列用于对齐：左侧组件库，中间弹性空白，右侧参数面板 */
   grid-template-columns: 240px 1fr 320px;
-  /* 定义2行：一行给顶部面板，一行给画布 */
   grid-template-rows: auto minmax(600px, 1fr);
   gap: 1.5rem;
   min-height: 80vh;
 }
 .component-library {
-  grid-column: 1 / 2; /* 放置在第1列 */
-  grid-row: 1 / 2;    /* 放置在第1行 */
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
 }
 .parameter-panel {
-  grid-column: 3 / 4; /* 放置在第3列 */
-  grid-row: 1 / 2;    /* 放置在第1行 */
+  grid-column: 3 / 4;
+  grid-row: 1 / 2;
 }
 .canvas {
-  grid-column: 1 / 4; /* 让画布横跨所有3列 */
-  grid-row: 2 / 3;    /* 放置在第2行 */
+  grid-column: 1 / 4;
+  grid-row: 2 / 3;
   position: relative;
   min-height: 600px;
   background-color: #e9ecef;
@@ -335,6 +510,10 @@ const startTraining = async () => {
   overflow: auto;
   border: 1px solid #ced4da;
   border-radius: 0.5rem;
+}
+.canvas:focus {
+    outline: 2px solid rgba(13, 110, 253, 0.5);
+    outline-offset: 2px;
 }
 
 .component-library .card-body {
@@ -384,12 +563,32 @@ const startTraining = async () => {
   z-index: 10;
 }
 
+.connection-handle {
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    background-color: #fff;
+    border: 2px solid #6c757d;
+    border-radius: 50%;
+    cursor: crosshair;
+    z-index: 11;
+    transition: background-color 0.2s, transform 0.2s;
+}
+.connection-handle:hover {
+    background-color: #0d6efd;
+    border-color: #0a58ca;
+    transform: translateY(-50%) scale(1.2);
+}
+
 .connections-svg {
   position: absolute;
   top: 0;
   left: 0;
-  width: 200%;
-  height: 200%;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
 }
 .connection-path {
@@ -408,7 +607,7 @@ const startTraining = async () => {
 }
 
 .training-log .card-body {
-  height: 300px;
+  height: 250px;
   overflow-y: auto;
 }
 .training-log pre {

@@ -9,7 +9,7 @@ import jieba
 import math
 import numpy as np
 import traceback
-
+import json
 # --- 1. 模型定义 (保持不变) ---
 # 这里的模型结构与您原有的保持一致
 class Transformer(nn.Module):
@@ -197,30 +197,34 @@ def run_epoch(X_data, Y_data, model, criterion, optimizer, batch_size, device):
 
 
 # --- 主函数 (重构) ---
-def start_training_process(config, data_path):
-    logs = []
+def start_training_process(config, data_path,learning_rate=0.0001,epoches =5):
+    # Helper to yield structured JSON data
+    def yield_data(data_type, content):
+        return json.dumps({"type": data_type, "payload": content}) + "\n"
+
     try:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        logs.append(f"日志: 使用设备: {device}")
+        yield yield_data("log", f"日志: 使用设备: {device}")
 
         src_file_path = os.path.join(data_path, 'train.cn')
         tgt_file_path = os.path.join(data_path, 'train.en')
         
-        logs.append("日志: 正在加载 Spacy 英文模型...")
+        yield yield_data("log", "日志: 正在加载 Spacy 英文模型...")
         spacy_en = spacy.load('en_core_web_sm')
         
         # 1. 加载和分词
         src_sents, tgt_sents, data_logs = load_data(src_file_path, tgt_file_path, spacy_en)
-        logs.extend(data_logs)
+        for log in data_logs:
+            yield yield_data("log", log)
         
         # 2. 构建词典
         cn_vocab = build_vocab(src_sents, min_freq=2)
         en_vocab = build_vocab(tgt_sents, min_freq=2)
         pad_idx = cn_vocab['<pad>']
         
-        logs.append("日志: 中英数据集已成功加载。")
-        logs.append(f"日志: 源语言 (中) 词典大小: {len(cn_vocab)}")
-        logs.append(f"日志: 目标语言 (英) 词典大小: {len(en_vocab)}")
+        yield yield_data("log", "日志: 中英数据集已成功加载。")
+        yield yield_data("log", f"日志: 源语言 (中) 词典大小: {len(cn_vocab)}")
+        yield yield_data("log", f"日志: 目标语言 (英) 词典大小: {len(en_vocab)}")
         
         # 3. 文本数值化
         X_data = numericalize(src_sents, cn_vocab)
@@ -243,15 +247,15 @@ def start_training_process(config, data_path):
             pad_idx=pad_idx
         ).to(device)
 
-        logs.append("日志: 模型已根据动态配置初始化:")
-        logs.append(str(config))
+        yield yield_data("log", "日志: 模型已根据动态配置初始化:")
+        yield yield_data("log", str(config))
 
-        optimizer = optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.98), eps=1e-9)
         criterion = LabelSmoothing(size=trg_vocab_size, padding_idx=pad_idx, smoothing=0.1)
 
-        num_epochs = config.get('epochs', 5)
+        num_epochs = epoches
         batch_size = config.get('batch_size', 32)
-        logs.append(f"日志: 开始训练，共 {num_epochs} 个 Epoch，批次大小为 {batch_size}。")
+        yield yield_data("log", f"日志: 开始训练，共 {num_epochs} 个 Epoch，批次大小为 {batch_size}。")
 
         for epoch in range(num_epochs):
             start_time = time.time()
@@ -265,17 +269,21 @@ def start_training_process(config, data_path):
             train_ppl = math.exp(train_loss)
             
             log_msg = f"Epoch: {epoch + 1:02} | 耗时: {epoch_mins}m {epoch_secs}s | 训练损失: {train_loss:.3f} | 训练困惑度: {train_ppl:7.3f}"
-            print(log_msg)
-            logs.append(log_msg)
             
-        logs.append("日志: 训练完成。")
+            # Yield both a log message and structured metric data
+            yield yield_data("log", log_msg)
+            yield yield_data("metric", {
+                "epoch": epoch + 1,
+                "loss": round(train_loss, 3),
+                "ppl": round(train_ppl, 3)
+            })
+            
+        yield yield_data("log", "日志: 训练完成。")
 
     except FileNotFoundError as e:
-        logs.append(f"错误: 依赖文件未找到 - {e}")
-        logs.append("提示: 请确保 Spacy 英文模型 'en_core_web_sm' 已下载 (python -m spacy download en_core_web_sm)。")
-        logs.append(f"提示: 并确保在 '{data_path}' 目录下有 train.cn 和 train.en 文件。")
+        yield yield_data("log", f"错误: 依赖文件未找到 - {e}")
+        yield yield_data("log", "提示: 请确保 Spacy 英文模型 'en_core_web_sm' 已下载 (python -m spacy download en_core_web_sm)。")
+        yield yield_data("log", f"提示: 并确保在 '{data_path}' 目录下有 train.cn 和 train.en 文件。")
     except Exception as e:
-        logs.append(f"严重错误: 训练过程中断 - {e}")
-        logs.append(traceback.format_exc())
-
-    return logs
+        yield yield_data("log", f"严重错误: 训练过程中断 - {e}")
+        yield yield_data("log", traceback.format_exc())

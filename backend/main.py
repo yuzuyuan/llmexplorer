@@ -12,6 +12,7 @@ from rag_pipeline import  rerank_only,retrieve_only
 # --- 核心修改：导入新的、分离的服务实例和函数 ---
 from model_server import get_tokenizer,llm_basics_server, sft_model_provider,sft_server
 import logging
+from fastapi.responses import StreamingResponse
 # --- FastAPI 应用和CORS配置 ---
 app = FastAPI(
   title="LLM Explorer Backend",
@@ -45,6 +46,8 @@ class GenerationRequest(BaseModel):
 class TrainRequest(BaseModel):
     components: List[Dict[str, Any]]
     connections: List[Dict[str, Any]]
+    epochs: int = 5
+    learning_rate: float = 0.0001
 class TokenizeRequest(BaseModel):
     text: str
 
@@ -208,8 +211,9 @@ async def calculate_loss(request: LossCalculationRequest):
 @app.post("/api/transformer/train")
 async def train_transformer_model(request: TrainRequest):
     logger.info("Received Transformer training request")
+    
     try:
-        # 1. 解析和验证前端发来的模型结构配置
+        # 1. 解析和验证前端发来的模型结构配置 (与之前相同)
         config = {}
         encoder_blocks = [c for c in request.components if c['type'] == 'encoder_block']
         decoder_blocks = [c for c in request.components if c['type'] == 'decoder_block']
@@ -218,17 +222,23 @@ async def train_transformer_model(request: TrainRequest):
         config['num_decoder_layers'] = len(decoder_blocks)
         
         if not encoder_blocks or not decoder_blocks:
-            return {"status": "error", "logs": ["模型结构不完整，必须同时包含编码器和解码器块。"]}
+            # 对于流式响应，错误也需要以流的方式返回
+            async def error_generator():
+                yield json.dumps({"type": "log", "payload": "模型结构不完整，必须同时包含编码器和解码器块。"}) + "\n"
+            return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
-        # --- 验证所有块的核心参数是否一致 ---
         all_blocks = encoder_blocks + decoder_blocks
         base_heads = all_blocks[0]['params']['heads']
         base_ff_dim = all_blocks[0]['params']['ff_dim']
 
         if not all(b['params']['heads'] == base_heads for b in all_blocks):
-            return {"status": "error", "logs": ["错误: 所有编码器和解码器块的 'heads' (注意力头数) 参数必须相同。"]}
+            async def error_generator():
+                yield json.dumps({"type": "log", "payload": "错误: 所有编码器和解码器块的 'heads' (注意力头数) 参数必须相同。"}) + "\n"
+            return StreamingResponse(error_generator(), media_type="application/x-ndjson")
         if not all(b['params']['ff_dim'] == base_ff_dim for b in all_blocks):
-            return {"status": "error", "logs": ["错误: 所有编码器和解码器块的 'ff_dim' (前馈网络维度) 参数必须相同。"]}
+            async def error_generator():
+                yield json.dumps({"type": "log", "payload": "错误: 所有编码器和解码器块的 'ff_dim' (前馈网络维度) 参数必须相同。"}) + "\n"
+            return StreamingResponse(error_generator(), media_type="application/x-ndjson")
         
         config['heads'] = base_heads
         config['ff_dim'] = base_ff_dim
@@ -238,21 +248,25 @@ async def train_transformer_model(request: TrainRequest):
         
         logger.info(f"Parsed model config: {config}")
 
-        # 2. 设定数据集的准确路径
-        # 该路径相对于项目根目录（即 start_server.bat 所在的位置）
-        data_path = os.path.join("..","DataTransformer", "Transformer", "data")
+        data_path = os.path.join(os.path.dirname(__file__), "..", "DataTransformer", "Transformer", "data")
         
         if not os.path.exists(os.path.join(data_path, 'train.cn')):
-             return {"status": "error", "logs": [f"错误：在路径 '{data_path}' 下找不到 train.cn 文件。", "请确认已将 cn.txt 和 en.txt 分别重命名为 train.cn 和 train.en。"]}
+            async def error_generator():
+                yield json.dumps({"type": "log", "payload": f"错误：在路径 '{data_path}' 下找不到 train.cn 文件。"}) + "\n"
+                yield json.dumps({"type": "log", "payload": "请确认已将 cn.txt 和 en.txt 分别重命名为 train.cn 和 train.en。"}) + "\n"
+            return StreamingResponse(error_generator(), media_type="application/x-ndjson")
 
-        # 3. 调用我们最终版的训练流程
-        logs = tt.start_training_process(config, data_path)
-        
-        return {"status": "Training complete", "logs": logs}
+        # 2. 调用训练流程生成器并返回流式响应
+        # The generator function from tt.start_training_process can be directly used
+        return StreamingResponse(tt.start_training_process(config, data_path,learning_rate=request.learning_rate,epoches = request.epochs), media_type="application/x-ndjson")
 
     except Exception as e:
-        logger.error(f"An error occurred during transformer training: {e}", exc_info=True)
-        return {"status": "error", "logs": [f"API层出现严重错误: {e}", "请检查后端控制台以获取详细的追溯信息。"]}
+        logger.error(f"An error occurred during transformer training setup: {e}", exc_info=True)
+        async def error_generator():
+            yield json.dumps({"type": "log", "payload": f"API层出现严重错误: {e}"}) + "\n"
+            yield json.dumps({"type": "log", "payload": "请检查后端控制台以获取详细的追溯信息。"}) + "\n"
+        return StreamingResponse(error_generator(), media_type="application/x-ndjson")
+
 
 @app.post("/api/rag/retrieve")
 async def handle_rag_retrieve(request: RagQueryRequest):
