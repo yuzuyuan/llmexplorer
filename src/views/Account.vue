@@ -12,7 +12,7 @@
           <div v-for="achievement in achievements" :key="achievement.id" class="col-md-6 col-lg-4 mb-3">
             <div class="card h-100" :class="{ 'border-success': achievement.unlocked }">
               <div class="card-body text-center">
-                <h5 class="card-title">{{ achievement.name }}</h5>
+                <h5 class="card-title">{{ achievement.title }}</h5>
                 <p class="card-text text-muted">{{ achievement.description }}</p>
                 <p v-if="achievement.unlocked" class="text-success fw-bold">已解锁!</p>
                 <p v-else class="text-secondary">未解锁</p>

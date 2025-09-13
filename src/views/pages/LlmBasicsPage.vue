@@ -69,11 +69,14 @@ const handleScroll = () => {
 };
 
 const handleInteraction = (interactionId) => {
+  // 1. Record the interaction
   trackInteraction('llm_basics', interactionId);
 
+  // 2. Check if all required interactions are now complete
   const interactions = JSON.parse(localStorage.getItem('interactions_llm_basics') || '[]');
   const allInteracted = requiredInteractions.every(id => interactions.includes(id));
 
+  // 3. Unlock if complete
   if (allInteracted) {
     unlockAchievement(interactionAchievementId);
   }

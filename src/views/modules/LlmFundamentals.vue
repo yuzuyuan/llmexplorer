@@ -87,11 +87,11 @@
         <div id="attention-vis-area" class="p-4 border rounded bg-light fs-5" @mouseleave="resetAttentionHighlight">
           <p v-if="!attentionData.tokens.length && !loadingAttention" class="text-muted text-center m-0">在此显示注意力结果...</p>
           <div v-else class="d-flex flex-wrap">
-            <span 
-              v-for="(token, index) in attentionData.tokens" 
+            <span
+              v-for="(token, index) in attentionData.tokens"
               :key="index"
               :data-token-index="index"
-              @mouseenter="highlightAttention(index)" 
+              @mouseenter="highlightAttention(index)"
               class="attention-token"
             >
               {{ token.replace(' ', ' ') }}
@@ -100,7 +100,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="card shadow-sm" id="prediction-module">
       <div class="card-header bg-light"><h4 class="mb-0">4. “猜猜下一个词”游戏</h4></div>
       <div class="card-body p-4">
@@ -133,7 +133,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import * as echarts from 'echarts';
-
+const emit = defineEmits(['interaction'])
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
 // --- 状态定义 ---
@@ -183,19 +183,19 @@ watch(inputText, fetchTokens);
 const getAndDrawEmbeddings = async () => {
   // 核心修改: 增加输入验证逻辑
   embeddingInputError.value = ''; // 重置错误信息
-
+  emit('interaction', 'visualize-vectors');
   if (embeddingWords.value.includes('，')) {
     embeddingInputError.value = '请使用英文逗号 "," 分隔单词，而不是中文逗号 "，"。';
     return;
   }
 
   const words = embeddingWords.value.split(',').map(w => w.trim()).filter(Boolean);
-  
+
   if (words.length <= 1) {
     embeddingInputError.value = '请输入至少两个单词以进行可视化比较。';
     return;
   }
-  
+
   loadingEmbeddings.value = true;
   try {
     const response = await fetch(`${API_BASE_URL}/api/get_embeddings`, {
@@ -207,8 +207,8 @@ const getAndDrawEmbeddings = async () => {
     const data = await response.json();
 
     const chartOption = {
-      tooltip: { 
-        trigger: 'item', 
+      tooltip: {
+        trigger: 'item',
         formatter: '<b>{b}</b><br/>向量: ({c})'
       },
       xAxis: { name: 'Dimension 1', splitLine: { show: false } },
@@ -216,9 +216,9 @@ const getAndDrawEmbeddings = async () => {
       series: [{
         type: 'scatter',
         symbolSize: 25,
-        data: data.vectors.map((vec, i) => ({ 
-            name: data.words[i], 
-            value: vec 
+        data: data.vectors.map((vec, i) => ({
+            name: data.words[i],
+            value: vec
         })),
         label: {
             show: true,
@@ -244,6 +244,7 @@ const getAndDrawEmbeddings = async () => {
 };
 
 const getAttentionData = async () => {
+    emit('interaction', 'analyze-attention');
     if (!attentionText.value.trim()) return;
     loadingAttention.value = true;
     attentionData.value = { tokens: [], attention: [] };
@@ -251,7 +252,7 @@ const getAttentionData = async () => {
         const response = await fetch(`${API_BASE_URL}/api/get_attention`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 text: attentionText.value,
                 layer: selectedLayer.value,
                 head: selectedHead.value
@@ -285,6 +286,7 @@ const resetAttentionHighlight = () => {
 };
 
 const predictNextToken = async () => {
+  emit('interaction', 'predict-next');
    if (!predictionPrefix.value.trim()) return;
   loadingPrediction.value = true;
   predictions.value = [];
@@ -306,7 +308,7 @@ const predictNextToken = async () => {
 
 onMounted(() => {
   inputText.value = 'LLM is powerful';
-  
+
   if (embeddingChartRef.value) {
       embeddingChart = echarts.init(embeddingChartRef.value);
       getAndDrawEmbeddings();

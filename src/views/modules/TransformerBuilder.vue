@@ -150,14 +150,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, nextTick, onMounted, onUnmounted,defineEmits} from 'vue';
 import TrainingLogChart from './TrainingLogsChart.vue';
 
 const components = ref([]);
 const connections = ref([]);
 const selectedComponent = ref(null);
 const canvasRef = ref(null);
-
+const emit = defineEmits(['interaction'])
 const showInstructions = ref(true);
 
 const isConnecting = ref(false);
@@ -198,6 +198,7 @@ const onDragStart = (event, type) => {
 };
 
 const onDrop = (event) => {
+  emit('interaction', 'drop-component');
   const type = event.dataTransfer.getData('componentType');
   if (!type) return;
 
@@ -270,6 +271,7 @@ const deleteComponent = (id) => {
 };
 
 const clearCanvas = () => {
+  emit('interaction', 'clear-canvas');
   components.value = [];
   connections.value = [];
   selectedComponent.value = null;
@@ -395,6 +397,7 @@ const getConnectionPath = (conn) => {
 };
 
 const loadClassicModel = async () => {
+  emit('interaction', 'load-classic');
   try {
     const response = await fetch('/architectures/classic_translation.json');
     if (!response.ok) throw new Error('网络错误!');
@@ -411,6 +414,7 @@ const loadClassicModel = async () => {
 };
 
 const startTraining = async () => {
+  emit('interaction', 'start-training');
   trainingState.isTraining = true;
   trainingState.logs = ["发起训练请求，请稍候..."];
   trainingMetrics.value = { epochs: [], loss: [], ppl: [] };

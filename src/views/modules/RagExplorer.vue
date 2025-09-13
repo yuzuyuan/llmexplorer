@@ -116,11 +116,11 @@
 
 <script setup>
 // ... (script 部分与上一版完全相同，无需修改) ...
-import { ref, reactive } from 'vue';
+import { ref, reactive,defineEmits} from 'vue';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
-
+const emit = defineEmits(['interaction'])
 const query = ref('山东省关于环境保护有哪些规定？');
 const loading = reactive({ retrieve: false, rerank: false, generate: false });
 const results = reactive({
@@ -133,6 +133,7 @@ const contextSource = ref(null);
 
 const runRetrieval = async () => {
   loading.retrieve = true;
+  emit('interaction', 'run-retrieval');
   Object.assign(results, { retrieved_docs: [], reranked_docs: [], final_prompt: '', final_answer: '' });
   contextSource.value = null;
 
@@ -153,6 +154,7 @@ const runRetrieval = async () => {
 };
 
 const applyReranker = async () => {
+    emit('interaction', 'apply-reranker');
     loading.rerank = true;
     results.reranked_docs = [];
     try {
@@ -176,6 +178,7 @@ const setContextSource = (source) => {
 };
 
 const runGeneration = async () => {
+    emit('interaction', 'generate-answer');
     if (!contextSource.value) {
         alert("请先选择一个上下文来源（召回结果或精排结果）。");
         return;

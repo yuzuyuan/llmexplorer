@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch,defineEmits } from 'vue';
 import * as echarts from 'echarts';
 import ChatInterface from '@/components/ChatInterface.vue';
 
@@ -84,7 +84,7 @@ const trainingLogs = ref([]);
 const goldenPredictions = ref({});
 const chartContainer = ref(null);
 let chartInstance = null;
-
+const emit = defineEmits(['interaction'])
 // 模拟状态
 const isPlaying = ref(false);
 const simulationDone = ref(false);
@@ -142,6 +142,7 @@ const initChart = () => {
 
 // --- 模拟动画 ---
 const startSimulation = () => {
+  emit('interaction', 'start-simulation');
   if (isPlaying.value || !chartInstance) return;
   isPlaying.value = true;
   simulationDone.value = false;
@@ -178,7 +179,7 @@ const startSimulation = () => {
 const handleChatSend = async (message) => {
   chatMessages.value.push({ from: 'user', text: message });
   isChatting.value = true;
-
+  emit('interaction', 'chat-send');
   try {
     const response = await fetch('http://127.0.0.1:8000/api/sft_generate', {
         method: 'POST',
@@ -204,6 +205,7 @@ const handleChatSend = async (message) => {
 // --- Watcher ---
 watch(selectedModelId, (newId, oldId) => {
     if (newId !== oldId) {
+        emit('interaction', 'model-select');
         chatMessages.value = [{from: 'bot', text: `你好！我是${selectedModelName.value}，有什么可以帮你的吗？`}];
     }
 }, { immediate: true });

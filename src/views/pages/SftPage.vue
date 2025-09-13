@@ -77,7 +77,7 @@ const selectedItem = ref(null);
 // --- Achievement Tracking (无需改动) ---
 const achievementId = 'read_sft';
 const interactionAchievementId = 'interact_sft';
-const requiredInteractions = ['dataset-nav', 'model-select', 'chat-send', 'start-simulation'];
+const requiredInteractions = ['model-select', 'chat-send', 'start-simulation'];
 
 const handleScroll = () => {
   const element = document.documentElement;
@@ -87,11 +87,14 @@ const handleScroll = () => {
 };
 
 const handleInteraction = (interactionId) => {
+  // 1. Record the interaction
   trackInteraction('sft', interactionId);
 
+  // 2. Check if all required interactions are now complete
   const interactions = JSON.parse(localStorage.getItem('interactions_sft') || '[]');
   const allInteracted = requiredInteractions.every(id => interactions.includes(id));
 
+  // 3. Unlock if complete
   if (allInteracted) {
     unlockAchievement(interactionAchievementId);
   }

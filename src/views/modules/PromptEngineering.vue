@@ -79,14 +79,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-
+import { ref, computed,defineEmits} from 'vue';
+const emit = defineEmits(['interaction'])
 const prompt = ref('请帮我写一封会议邀请邮件，内容应清晰、正式。');
 const loading = ref(false);
 const result = ref(null);
 const API_BASE_URL = 'http://127.0.0.1:8000'; // 确保这个地址与你的后端服务匹配
 
 const generateOutput = async () => {
+  emit('interaction', 'submit-prompt');
   if (!prompt.value.trim()) {
     alert('请输入您的 Prompt!');
     return;
