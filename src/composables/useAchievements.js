@@ -52,6 +52,20 @@ export function useAchievements() {
   const saveAchievements = () => {
     localStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(achievements.value));
   };
+  const trackInteraction = (pageId, interactionId) => {
+  const storageKey = `interactions_${pageId}`;
+  try {
+    const interactions = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    if (!interactions.includes(interactionId)) {
+      interactions.push(interactionId);
+      localStorage.setItem(storageKey, JSON.stringify(interactions));
+      console.log(`Interaction tracked for ${pageId}: ${interactionId}`);
+    }
+  } catch (e) {
+    console.error(`Failed to track interaction for ${pageId}`, e);
+  }
+};
+
 
   const unlockAchievement = (id) => {
     const achievement = achievements.value.find((a) => a.id === id);
@@ -84,5 +98,6 @@ export function useAchievements() {
     achievements,
     unlockAchievement,
     checkAchievements,
+    trackInteraction,
   };
 } // <-- 这个是函数的右括号，后面不应再有其他括号

@@ -390,7 +390,7 @@ async def judge_prompt(request: PromptEngRequest):
         with torch.inference_mode():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=256, # 邮件内容不需要太长
+                max_new_tokens=1024, # 邮件内容不需要太长
                 temperature=0.7,   # 允许一定的创造性
                 top_p=0.9,
                 do_sample=True,
