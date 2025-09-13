@@ -61,7 +61,7 @@ class PredictRequest(BaseModel):
 class SftRequest(BaseModel):
     model_id: str
     prompt: str
-    max_new_tokens: int = 128
+    max_new_tokens: int = 1024
     temperature: float = 0.7
     top_p: float = 0.9
 class LossCalculationRequest(BaseModel):
@@ -200,7 +200,7 @@ async def calculate_loss(request: LossCalculationRequest):
 async def train_transformer_model(request: TrainRequest):
     logger.info("Received Transformer training request")
     try:
-        # 1. 解析前端发来的模型结构配置
+        # 1. 解析和验证前端发来的模型结构配置
         config = {}
         encoder_blocks = [c for c in request.components if c['type'] == 'encoder_block']
         decoder_blocks = [c for c in request.components if c['type'] == 'decoder_block']
@@ -211,20 +211,28 @@ async def train_transformer_model(request: TrainRequest):
         if not encoder_blocks or not decoder_blocks:
             return {"status": "error", "logs": ["模型结构不完整，必须同时包含编码器和解码器块。"]}
 
-        # 使用第一个编码器块的参数作为全局参数
-        config['heads'] = encoder_blocks[0]['params']['heads']
-        config['ff_dim'] = encoder_blocks[0]['params']['ff_dim']
+        # --- 验证所有块的核心参数是否一致 ---
+        all_blocks = encoder_blocks + decoder_blocks
+        base_heads = all_blocks[0]['params']['heads']
+        base_ff_dim = all_blocks[0]['params']['ff_dim']
 
+        if not all(b['params']['heads'] == base_heads for b in all_blocks):
+            return {"status": "error", "logs": ["错误: 所有编码器和解码器块的 'heads' (注意力头数) 参数必须相同。"]}
+        if not all(b['params']['ff_dim'] == base_ff_dim for b in all_blocks):
+            return {"status": "error", "logs": ["错误: 所有编码器和解码器块的 'ff_dim' (前馈网络维度) 参数必须相同。"]}
+        
+        config['heads'] = base_heads
+        config['ff_dim'] = base_ff_dim
+        
         embedding_layer = next((c for c in request.components if c['type'] == 'embedding'), None)
         config['embed_dim'] = embedding_layer['params']['embed_dim'] if embedding_layer else 512
         
         logger.info(f"Parsed model config: {config}")
 
         # 2. 设定数据集的准确路径
-        # 该路径是相对于项目根目录（即 start_server.bat 所在的位置）
-        data_path = os.path.join("backend", "dldemos", "Transformer", "data")
+        # 该路径相对于项目根目录（即 start_server.bat 所在的位置）
+        data_path = os.path.join("DataTransformer", "Transformer", "data")
         
-        # 增加路径检查，提供更明确的错误信息
         if not os.path.exists(os.path.join(data_path, 'train.cn')):
              return {"status": "error", "logs": [f"错误：在路径 '{data_path}' 下找不到 train.cn 文件。", "请确认已将 cn.txt 和 en.txt 分别重命名为 train.cn 和 train.en。"]}
 
@@ -236,7 +244,6 @@ async def train_transformer_model(request: TrainRequest):
     except Exception as e:
         logger.error(f"An error occurred during transformer training: {e}", exc_info=True)
         return {"status": "error", "logs": [f"API层出现严重错误: {e}", "请检查后端控制台以获取详细的追溯信息。"]}
-
 @app.post("/api/rag/retrieve")
 async def handle_rag_retrieve(request: RagQueryRequest):
     """
@@ -284,7 +291,7 @@ async def handle_rag_generate(request: GenerationRequest):
         inputs = tokenizer(text, return_tensors="pt").to(model.device)
         with torch.inference_mode():
             outputs = model.generate(
-                **inputs, max_new_tokens=512, temperature=0.1, top_p=0.9,
+                **inputs, max_new_tokens=1024, temperature=0.1, top_p=0.9,
                 do_sample=True, pad_token_id=tokenizer.eos_token_id
             )
         response_ids = outputs[0][inputs.input_ids.shape[1]:]
